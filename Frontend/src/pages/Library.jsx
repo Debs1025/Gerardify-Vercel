@@ -1,5 +1,3 @@
-//nawara si like pag nag upload ka ning music tas nag upload ka ulit ning same file dpat dae pwede
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';

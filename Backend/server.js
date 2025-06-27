@@ -13,7 +13,7 @@ app.use(cors());
 app.use(express.json());
 
 // MongoDB Connection
-const mongoUri = process.env.MONGODB_URI || 'mongodb://localhost:27017/gerardify';
+const mongoUri = process.env.MONGODB_URI || 'mongodb+srv://edebelen:erickdebelen1025@erickdebelen.0poxbsq.mongodb.net/gerardify';
 mongoose.connect(mongoUri, {
   useNewUrlParser: true,
   useUnifiedTopology: true

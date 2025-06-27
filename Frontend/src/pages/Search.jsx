@@ -1,5 +1,3 @@
-// Lagan function na pwde masearch si mga songs na nasa library
-
 import React, { useState } from 'react';
 import '../styles/pages/Search.css';
 

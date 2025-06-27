@@ -347,7 +347,6 @@ if (process.env.NODE_ENV !== 'production') {
 // Export for Vercel
 module.exports = app;
 
-// Only listen on port if not in production (Vercel handles this)
 if (process.env.NODE_ENV !== 'production') {
   app.listen(port, () => {
     console.log(`Server is running on port ${port}`);

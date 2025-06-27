@@ -1,0 +1,244 @@
+.song-details {
+   padding: 30px;
+   color: rgb(255, 255, 255);
+ }
+ 
+ .song-header {
+   display: flex;
+   gap: 30px;
+   align-items: flex-start;
+ }
+ 
+ .song-cover {
+   width: 232px;
+   height: 232px;
+   background: #282828;
+   display: flex;
+   align-items: center;
+   justify-content: center;
+   border-radius: 4px;
+   box-shadow: 0 4px 60px rgba(0,0,0,.5);
+ }
+ 
+ .song-cover i {
+   font-size: 64px;
+   color: #ffffff;
+ }
+ 
+ .song-info {
+   flex: 1;
+   display: flex;
+   flex-direction: column;
+   gap: 16px;
+ }
+ 
+ .song-info h1 {
+   font-size: 48px;
+   margin: 0;
+   color: rgb(0, 0, 0);
+ }
+ 
+ .artist {
+   font-size: 18px;
+   color: #5c5c5c;
+   margin: 0;
+ }
+ 
+ .song-meta {
+   display: flex;
+   align-items: center;
+   gap: 20px;
+   color: #4d4d4d;
+   font-size: 14px;
+ }
+ 
+ .duration {
+   display: flex;
+   align-items: center;
+   gap: 5px;
+ }
+ 
+ .play-button {
+   margin-top: 20px;
+   background: #d51870;
+   color: white;
+   border: none;
+   padding: 12px 32px;
+   border-radius: 20px;
+   font-size: 16px;
+   cursor: pointer;
+   display: flex;
+   align-items: center;
+   gap: 8px;
+   width: fit-content;
+   transition: all 0.2s;
+ }
+ 
+ .play-button:hover {
+   background: #f01b7c;
+   transform: scale(1.05);
+ }
+
+/* Edit form styling */
+.edit-form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  margin-top: 20px;
+  max-width: 400px;
+}
+
+.edit-form input {
+  padding: 12px;
+  background: #3e3e3e;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  color: white;
+  font-size: 16px;
+  transition: all 0.2s;
+}
+
+.edit-form input:focus {
+  outline: none;
+  border-color: #d51870;
+  background: #4a4a4a;
+}
+
+.edit-buttons button {
+  padding: 10px 24px;
+  border-radius: 20px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 500;
+  transition: all 0.2s;
+}
+
+.edit-buttons button:first-child {
+  background: #d51870;
+  color: white;
+  border: none;
+}
+
+.edit-buttons button:first-child:hover {
+  background: #f01b7c;
+  transform: scale(1.05);
+}
+
+.edit-buttons button:last-child {
+  background: transparent;
+  border: 1px solid #ffffff;
+  color: #ffffff;
+}
+
+.edit-buttons button:last-child:hover {
+  border-color: rgb(0, 0, 0);
+  color: rgb(0, 0, 0);
+}
+
+/* Action buttons styling */
+.song-actions {
+  display: flex;
+  gap: 16px;
+  margin-top: 24px;
+}
+
+.edit-button, .delete-button {
+  background: transparent;
+  border: 1px solid #ffffff;
+  color: #ffffff;
+  padding: 12px 32px;
+  border-radius: 20px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 16px;
+  font-weight: 500;
+  transition: all 0.2s;
+}
+
+.edit-button:hover {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: white;
+  color: white;
+  transform: scale(1.05);
+}
+
+.delete-button:hover {
+  background: rgba(255, 68, 68, 0.1);
+  border-color: #ff4444;
+  color: #ff4444;
+  transform: scale(1.05);
+}
+
+/* Delete confirmation design */
+.delete-confirmation-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.delete-confirmation {
+  background: #282828;
+  padding: 24px;
+  border-radius: 8px;
+  width: 100%;
+  max-width: 400px;
+  text-align: center;
+}
+
+.delete-confirmation h3 {
+  margin: 0 0 16px;
+  color: white;
+  font-size: 24px;
+}
+
+.delete-confirmation p {
+  margin: 0 0 24px;
+  color: #b3b3b3;
+  font-size: 16px;
+}
+
+.confirmation-buttons {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+}
+
+.confirmation-buttons button {
+  padding: 12px 24px;
+  border-radius: 20px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.confirm-delete {
+  background: #ff4444;
+  color: white;
+  border: none;
+}
+
+.confirm-delete:hover {
+  background: #ff6666;
+  transform: scale(1.05);
+}
+
+.cancel-delete {
+  background: transparent;
+  border: 1px solid #b3b3b3;
+  color: #b3b3b3;
+}
+
+.cancel-delete:hover {
+  border-color: white;
+  color: white;
+}

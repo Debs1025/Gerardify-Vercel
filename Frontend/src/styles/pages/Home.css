@@ -1,0 +1,94 @@
+.home {
+   padding: 20px;
+   padding-bottom: 150px;
+ }
+ 
+ .home h1 {
+   margin-bottom: 20px;
+ }
+
+ .your-playlists {
+  margin-top: 2rem;
+  padding: 0 1rem;
+}
+
+.playlists-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
+.playlist-item {
+  background: #282828;
+  padding: 1rem;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+}
+
+.playlist-item:hover {
+  background: #383838;
+}
+
+.playlist-cover {
+  background: #181818;
+  aspect-ratio: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  margin-bottom: 1rem;
+}
+
+.playlist-cover i {
+  font-size: 3rem;
+  color: #b3b3b3;
+}
+
+.playlist-item h3 {
+  margin: 0;
+  color: #fff;
+  font-size: 1rem;
+}
+
+.playlist-item p {
+  margin: 0.5rem 0 0;
+  color: #b3b3b3;
+  font-size: 0.9rem;
+}
+
+.no-playlists {
+  text-align: center;
+  background: #282828;
+  padding: 3rem 2rem;
+  border-radius: 10px;
+  margin-top: 2rem;
+}
+
+.no-playlists p {
+  color: #fff;
+  font-size: 1.2rem;
+  margin-bottom: 1.5rem;
+}
+
+.create-playlist-btn {
+  background: #f01b7c;
+  color: #fff;
+  border: none;
+  padding: 1rem 2rem;
+  border-radius: 500px;
+  font-size: 1.1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+.create-playlist-btn:hover {
+  background: #e95693;
+  transform: translateY(-2px);
+}
+

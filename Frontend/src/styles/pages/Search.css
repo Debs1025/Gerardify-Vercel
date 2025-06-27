@@ -1,0 +1,37 @@
+.search {
+   padding: 20px;
+ }
+ 
+ .search h1 {
+   margin-bottom: 20px;
+ }
+ 
+ .search-box {
+   position: relative;
+   max-width: 700px;
+   margin: 20px 0;
+ }
+ 
+ .search-icon {
+   position: absolute;
+   left: 16px;
+   top: 50%;
+   transform: translateY(-50%);
+   color: #121212;
+   z-index: 1;
+   font-size: 20px;
+ }
+ 
+ .search-input {
+   width: 100%;
+   padding: 14px 14px 14px 48px;
+   background-color: #fff;
+   border: none;
+   border-radius: 50px;
+   color: #121212;
+   font-size: 14px;
+ }
+ 
+ .search-input:focus {
+   outline: none;
+ }

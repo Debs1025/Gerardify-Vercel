@@ -5,7 +5,7 @@ import '../styles/pages/Song.css';
 
 // Create axios instance with base URL
 const api = axios.create({
-  baseURL: 'http://localhost:5000/api'
+  baseURL: 'https://gerardify-vercel-adykar6lx-erick-de-belens-projects.vercel.app/api'
 });
 
 function Song({ setCurrentSong, setIsPlaying, songs, setSongs }) {

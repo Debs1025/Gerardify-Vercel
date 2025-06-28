@@ -5,7 +5,7 @@ import '../styles/pages/Library.css';
 
 // Create axios instance with base URL
 const api = axios.create({
-  baseURL: 'http://localhost:5000/api'
+  baseURL: 'https://gerardify-vercel-adykar6lx-erick-de-belens-projects.vercel.app/api'
 });
 
 function Library({ setCurrentSong, playlists, setPlaylists, setCurrentPlaylist, setIsPlaying, songs, setSongs }) {  
@@ -87,7 +87,9 @@ function Library({ setCurrentSong, playlists, setPlaylists, setCurrentPlaylist, 
             title: data.title,
             artist: data.artist,
             duration: data.duration,
-            url: `http://localhost:5000/${data.filePath}`
+            url: data.filePath.startsWith('data:') 
+            ? data.filePath 
+            : `https://gerardify-vercel-adykar6lx-erick-de-belens-projects.vercel.app/${data.filePath}`
           };
 
           setSongs(prevSongs => [...prevSongs, newSong]);
@@ -112,7 +114,6 @@ function Library({ setCurrentSong, playlists, setPlaylists, setCurrentPlaylist, 
     setShowSongForm(false);
   };
 
-  // Add useEffect to fetch songs on component mount using axios
   useEffect(() => {
     // Fetch songs
     api.get('/songs')
@@ -122,7 +123,9 @@ function Library({ setCurrentSong, playlists, setPlaylists, setCurrentPlaylist, 
           title: song.title,
           artist: song.artist,
           duration: song.duration,
-          url: `http://localhost:5000/${song.filePath}`
+          url: song.filePath.startsWith('data:') 
+          ? song.filePath 
+          : `https://gerardify-vercel-adykar6lx-erick-de-belens-projects.vercel.app/${song.filePath}`
         }));
         setSongs(formattedSongs);
       })

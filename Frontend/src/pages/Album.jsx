@@ -5,7 +5,7 @@ import '../styles/pages/Album.css';
 
 // Create axios instance with base URL
 const api = axios.create({
-  baseURL: 'http://localhost:5000/api'
+  baseURL: 'https://gerardify-vercel-adykar6lx-erick-de-belens-projects.vercel.app/api'
 });
 
 function Album({ setCurrentSong, currentSong, setIsPlaying, playlists, setPlaylists, songs }) {
@@ -138,7 +138,9 @@ function Album({ setCurrentSong, currentSong, setIsPlaying, playlists, setPlayli
       title: song.title,
       artist: song.artist,
       duration: song.duration,
-      url: `http://localhost:5000/${song.filePath}`
+      url: song.filePath.startsWith('data:') 
+      ? song.filePath 
+      : `https://gerardify-vercel-adykar6lx-erick-de-belens-projects.vercel.app/${song.filePath}`
     });
     setIsPlaying(true);
   };

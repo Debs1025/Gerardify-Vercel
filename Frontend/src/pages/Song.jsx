@@ -3,9 +3,9 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import '../styles/pages/Song.css';
 
-// Create axios instance with base URL
+// axios instance with base URL
 const api = axios.create({
-  baseURL: 'https://gerardify-vercel-adykar6lx-erick-de-belens-projects.vercel.app/api'
+  baseURL: 'https://gerardify-vercel.vercel.app/api'
 });
 
 function Song({ setCurrentSong, setIsPlaying, songs, setSongs }) {

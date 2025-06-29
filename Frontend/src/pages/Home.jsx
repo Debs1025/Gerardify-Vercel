@@ -5,7 +5,7 @@ import '../styles/pages/Home.css';
 
 // Create axios instance with base URL
 const api = axios.create({
-  baseURL: 'https://gerardify-vercel-adykar6lx-erick-de-belens-projects.vercel.app/api'
+  baseURL: 'https://gerardify-vercel.vercel.app/api'
 });
 
 function Home() {

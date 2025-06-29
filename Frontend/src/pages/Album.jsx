@@ -3,14 +3,14 @@ import { useParams, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import '../styles/pages/Album.css';
 
-// Create axios instance with base URL
+// axios instance with base URL
 const api = axios.create({
-  baseURL: 'https://gerardify-vercel-adykar6lx-erick-de-belens-projects.vercel.app/api'
+  baseURL: 'https://gerardify-vercel.vercel.app/api'
 });
 
 function Album({ setCurrentSong, currentSong, setIsPlaying, playlists, setPlaylists, songs }) {
   const { id } = useParams();
-  const numericId = parseInt(id); // Ensure it's a number
+  const numericId = parseInt(id);
   const navigate = useNavigate();
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
@@ -140,7 +140,7 @@ function Album({ setCurrentSong, currentSong, setIsPlaying, playlists, setPlayli
       duration: song.duration,
       url: song.filePath.startsWith('data:') 
       ? song.filePath 
-      : `https://gerardify-vercel-adykar6lx-erick-de-belens-projects.vercel.app/${song.filePath}`
+      : `https://gerardify-vercel.vercel.app/${song.filePath}`
     });
     setIsPlaying(true);
   };

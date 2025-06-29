@@ -91,6 +91,22 @@ app.get('/api/health', (req, res) => {
   });
 });
 
+app.get('/', (req, res) => {
+  res.json({ 
+    message: 'Gerardify Backend API',
+    status: 'Running',
+    endpoints: [
+      'GET /api/health',
+      'GET /api/songs', 
+      'POST /api/songs',
+      'GET /api/playlists',
+      'POST /api/playlists',
+      'GET /api/playlists/:id'
+    ],
+    timestamp: new Date().toISOString()
+  });
+});
+
 // Routes
 app.post('/api/songs', upload.single('file'), async (req, res) => {
   try {

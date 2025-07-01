@@ -5,7 +5,7 @@ import '../styles/pages/Album.css';
 
 // axios instance with base URL
 const api = axios.create({
-  baseURL: 'https://gerardify-vercel.vercel.app/api'
+  baseURL: 'https://gerardify-vercel-backend.vercel.app/api'
 });
 
 function Album({ setCurrentSong, currentSong, setIsPlaying, playlists, setPlaylists, songs }) {
@@ -140,7 +140,7 @@ function Album({ setCurrentSong, currentSong, setIsPlaying, playlists, setPlayli
       duration: song.duration,
       url: song.filePath.startsWith('data:') 
       ? song.filePath 
-      : `https://gerardify-vercel.vercel.app/${song.filePath}`
+      : `https://gerardify-vercel-backend.vercel.app/${song.filePath}`
     });
     setIsPlaying(true);
   };

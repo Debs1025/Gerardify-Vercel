@@ -4,6 +4,8 @@ const cors = require('cors');
 const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
+const cloudinary = require('cloudinary').v2;
+const { CloudinaryStorage } = require('multer-storage-cloudinary');
 
 const app = express();
 const port = process.env.PORT || 5000;
@@ -31,6 +33,18 @@ mongoose.connect(mongoUri, {
   useUnifiedTopology: true
 });
 
+// Cloudinary Configuration
+if (process.env.NODE_ENV === 'production') {
+  if (!process.env.CLOUDINARY_CLOUD_NAME || !process.env.CLOUDINARY_API_KEY || !process.env.CLOUDINARY_API_SECRET) {
+    console.error('Missing Cloudinary environment variables');
+  }
+}
+cloudinary.config({
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+  api_key: process.env.CLOUDINARY_API_KEY,
+  api_secret: process.env.CLOUDINARY_API_SECRET,
+});
+
 // Create uploads directory if it doesn't exist 
 const uploadsDir = path.join(__dirname, 'uploads');
 if (!fs.existsSync(uploadsDir) && process.env.NODE_ENV !== 'production') {
@@ -38,21 +52,19 @@ if (!fs.existsSync(uploadsDir) && process.env.NODE_ENV !== 'production') {
 }
 
 // Configure multer for file uploads
-const storage = process.env.NODE_ENV === 'production' 
-  ? multer.memoryStorage()
-  : multer.diskStorage({
-      destination: function (req, file, cb) {
-        cb(null, 'uploads/');
-      },
-      filename: function (req, file, cb) {
-        cb(null, Date.now() + '-' + file.originalname);
-      }
-    });
+const storage = new CloudinaryStorage({
+  cloudinary: cloudinary,
+  params: {
+    folder: 'gerardify-songs',
+    resource_type: 'auto', // Handles audio files
+    allowed_formats: ['mp3', 'wav', 'ogg', 'flac', 'm4a'],
+  },
+});
 
 const upload = multer({ 
   storage: storage,
   limits: {
-    fileSize: 3 * 1024 * 1024 // 3MB limit
+    fileSize: 50 * 1024 * 1024 // 50MB limit
   }
 });
 
@@ -62,6 +74,7 @@ const songSchema = new mongoose.Schema({
   artist: { type: String, required: true },
   duration: { type: String, required: true },
   filePath: { type: String, required: true },
+  publicId: { type: String },
   createdAt: { type: Date, default: Date.now }
 });
 
@@ -124,27 +137,19 @@ app.get('/', (req, res) => {
 app.post('/api/songs', upload.single('file'), async (req, res) => {
   try {
     const { title, artist, duration } = req.body;
-    
-    if (req.file.size > 3 * 1024 * 1024) { // 3MB
-      return res.status(413).json({ 
-        message: 'File too large. Please use a file smaller than 3MB.' 
-      });
-    }
 
-    let filePath;
-    if (process.env.NODE_ENV === 'production') {
-      const fileBuffer = req.file.buffer;
-      const fileBase64 = fileBuffer.toString('base64');
-      filePath = `data:${req.file.mimetype};base64,${fileBase64}`;
-    } else {
-      filePath = req.file.path;
+    if (req.file.size > 50 * 1024 * 1024) { // 50MB
+      return res.status(413).json({ 
+        message: 'File too large. Please use a file smaller than 50MB.' 
+      });
     }
 
     const song = new Song({
       title,
       artist,
       duration,
-      filePath
+      filePath: req.file.path,      
+      publicId: req.file.filename     
     });
 
     await song.save();
@@ -186,7 +191,16 @@ app.delete('/api/songs/:id', async (req, res) => {
       return res.status(404).json({ message: 'Song not found' });
     }
 
-    // Delete the file from the uploads directory (only in development)
+    // Delete from Cloudinary if in production
+    if (process.env.NODE_ENV === 'production' && song.publicId) {
+      try {
+        await cloudinary.uploader.destroy(song.publicId, { resource_type: 'video' });
+      } catch (cloudinaryError) {
+        console.error('Error deleting from Cloudinary:', cloudinaryError);
+      }
+    }
+
+    // Delete local file if in development
     if (process.env.NODE_ENV !== 'production' && !song.filePath.startsWith('data:')) {
       const filePath = path.join(__dirname, song.filePath);
       if (fs.existsSync(filePath)) {

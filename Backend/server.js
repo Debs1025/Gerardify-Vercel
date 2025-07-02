@@ -40,7 +40,7 @@ if (process.env.NODE_ENV === 'production') {
   }
 }
 cloudinary.config({
-  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+  cloud_name: 'dbapmmimu2',
   api_key: process.env.CLOUDINARY_API_KEY,
   api_secret: process.env.CLOUDINARY_API_SECRET,
 });
@@ -56,8 +56,9 @@ const storage = new CloudinaryStorage({
   cloudinary: cloudinary,
   params: {
     folder: 'gerardify-songs',
-    resource_type: 'auto', // Handles audio files
+    resource_type: 'auto',
     allowed_formats: ['mp3', 'wav', 'ogg', 'flac', 'm4a'],
+    public_id: (req, file) => `song-${Date.now()}`, // ✅ Add unique public_id
   },
 });
 

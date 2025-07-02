@@ -7,7 +7,7 @@ function Navbar() {
   return (
     <nav className="sidebar">
       <Link to="/" className="logo">
-        <img src="/src/assets/logo.png" alt="Gerardify" />
+        <img src="/logo.png" alt="Gerardify" />
         <h1>Gerardify</h1>
       </Link>
       

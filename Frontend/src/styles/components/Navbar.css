@@ -56,3 +56,14 @@
  .nav-links i {
    font-size: 24px;
  }
+ .logo-placeholder {
+  width: 40px;
+  height: 40px;
+  background: #d51870;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-size: 20px;
+}

@@ -124,10 +124,12 @@ function Library({ setCurrentSong, playlists, setPlaylists, setCurrentPlaylist, 
 
           setSongs(prevSongs => [...prevSongs, newSong]);
           setCurrentPlaylist([...songs, newSong]);
+          alert('Song uploaded successfully!'); // ✅ Success message
         })
         .catch(error => {
-          console.error('Error uploading song:', error);
-          alert('Failed to upload song. Please try again.');
+          console.error('Upload error details:', error.response?.data || error.message);
+          const errorMsg = error.response?.data?.message || 'Failed to upload song. Please try again.';
+          alert(`Upload failed: ${errorMsg}`); 
         });
 
         resolve();

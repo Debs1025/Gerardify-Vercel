@@ -7,8 +7,8 @@ function Navbar() {
   return (
     <nav className="sidebar">
       <Link to="/" className="logo">
-        <div className="logo-placeholder">
-          <i className="bi bi-music-note"></i>
+        <div className="logo-icon">
+          <i className="bi bi-play-fill"></i>
         </div>
         <h1>Gerardify</h1>
       </Link>

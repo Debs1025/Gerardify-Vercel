@@ -19,6 +19,23 @@
    width: 40px;
    height: 40px;
  }
+
+.logo-icon {
+  width: 40px;
+  height: 40px;
+  background: #ff4d6d;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+}
+
+.logo-icon i {
+  color: white;
+  font-size: 18px;
+  margin-left: 2px;
+}
  
  .logo h1 {
    font-size: 24px;
@@ -56,14 +73,3 @@
  .nav-links i {
    font-size: 24px;
  }
- .logo-placeholder {
-  width: 40px;
-  height: 40px;
-  background: #d51870;
-  border-radius: 8px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: white;
-  font-size: 20px;
-}

@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import '../styles/pages/Library.css';
 
+
 // Create axios instance with base URL
 const api = axios.create({
   baseURL: 'https://gerardify-vercel-backend.vercel.app/api' 
@@ -43,11 +44,10 @@ function Library({ setCurrentSong, playlists, setPlaylists, setCurrentPlaylist, 
   const handleFileSelect = (e) => {
     const file = e.target.files[0];
     if (file) {
-      // Check file size (4MB limit)
-      if (file.size > 3 * 1024 * 1024) {
-        alert('File is too large. Please select a file smaller than 3MB.');
-        return;
-      }
+      if (file.size > 50 * 1024 * 1024) {
+      alert('File is too large. Please select a file smaller than 50MB.');
+      return;
+    }
       
       const url = URL.createObjectURL(file);
       setNewSongData({
@@ -65,13 +65,13 @@ function Library({ setCurrentSong, playlists, setPlaylists, setCurrentPlaylist, 
     const audio = new Audio(URL.createObjectURL(file));
     
     audio.addEventListener('loadedmetadata', () => {
-      // Temporary Solution since vercel has 4.5mb limit 
-      if (file.size <= 3 * 1024 * 1024) { // 3MB
+      if (file.size <= 50 * 1024 * 1024) { // 50MB
         resolve(file);
         return;
       }
-      if (file.size > 3 * 1024 * 1024) { 
-        alert('File is too large. Please use a file smaller than 3MB or compress it first.');
+      
+      if (file.size > 50 * 1024 * 1024) { 
+        alert('File is too large. Please use a file smaller than 50MB.');
         resolve(null);
         return;
       }
@@ -79,7 +79,7 @@ function Library({ setCurrentSong, playlists, setPlaylists, setCurrentPlaylist, 
       resolve(file);
     });
   });
-};  
+};
 
   const handleSongFormSubmit = async (e) => {
     e.preventDefault();
@@ -117,7 +117,7 @@ function Library({ setCurrentSong, playlists, setPlaylists, setCurrentPlaylist, 
             title: data.title,
             artist: data.artist,
             duration: data.duration,
-            url: data.filePath.startsWith('data:') 
+            url: data.filePath 
             ? data.filePath 
             : `https://gerardify-vercel-backend.vercel.app/${data.filePath}`
           };
@@ -153,7 +153,7 @@ function Library({ setCurrentSong, playlists, setPlaylists, setCurrentPlaylist, 
           title: song.title,
           artist: song.artist,
           duration: song.duration,
-          url: song.filePath.startsWith('data:') 
+          url: song.filePath
           ? song.filePath 
           : `https://gerardify-vercel-backend.vercel.app/${song.filePath}`
         }));

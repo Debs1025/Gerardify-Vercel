@@ -138,7 +138,7 @@ function Album({ setCurrentSong, currentSong, setIsPlaying, playlists, setPlayli
       title: song.title,
       artist: song.artist,
       duration: song.duration,
-      url: song.filePath.startsWith('data:') 
+      url: song.filePath
       ? song.filePath 
       : `https://gerardify-vercel-backend.vercel.app/${song.filePath}`
     });

@@ -5,7 +5,7 @@ import '../styles/pages/Library.css';
 
 // Create axios instance with base URL
 const api = axios.create({
-  baseURL: 'https://gerardify-vercel-backend.vercel.app/api'
+  baseURL: 'https://gerardify-vercel-backend.vercel.app/api' 
 });
 
 function Library({ setCurrentSong, playlists, setPlaylists, setCurrentPlaylist, setIsPlaying, songs, setSongs }) {  

@@ -43,6 +43,12 @@ function Library({ setCurrentSong, playlists, setPlaylists, setCurrentPlaylist, 
   const handleFileSelect = (e) => {
     const file = e.target.files[0];
     if (file) {
+      // Check file size (4MB limit)
+      if (file.size > 3 * 1024 * 1024) {
+        alert('File is too large. Please select a file smaller than 3MB.');
+        return;
+      }
+      
       const url = URL.createObjectURL(file);
       setNewSongData({
         ...newSongData,
@@ -54,9 +60,33 @@ function Library({ setCurrentSong, playlists, setPlaylists, setCurrentPlaylist, 
     }
   };
 
+  const compressAudio = (file) => {
+  return new Promise((resolve) => {
+    const audio = new Audio(URL.createObjectURL(file));
+    
+    audio.addEventListener('loadedmetadata', () => {
+      // Temporary Solution since vercel has 4.5mb limit 
+      if (file.size <= 3 * 1024 * 1024) { // 3MB
+        resolve(file);
+        return;
+      }
+      if (file.size > 3 * 1024 * 1024) { 
+        alert('File is too large. Please use a file smaller than 3MB or compress it first.');
+        resolve(null);
+        return;
+      }
+      
+      resolve(file);
+    });
+  });
+};  
+
   const handleSongFormSubmit = async (e) => {
     e.preventDefault();
     if (!newSongData.file || !newSongData.title.trim() || !newSongData.artist.trim()) return;
+
+    const compressedFile = await compressAudio(newSongData.file);
+    if (!compressedFile) return;
 
     const audio = new Audio(newSongData.tempUrl);
     
@@ -69,7 +99,7 @@ function Library({ setCurrentSong, playlists, setPlaylists, setCurrentPlaylist, 
 
         // Create FormData for file upload
         const formData = new FormData();
-        formData.append('file', newSongData.file);
+        formData.append('file', compressedFile); 
         formData.append('title', newSongData.title);
         formData.append('artist', newSongData.artist);
         formData.append('duration', formattedDuration);

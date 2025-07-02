@@ -49,7 +49,12 @@ const storage = process.env.NODE_ENV === 'production'
       }
     });
 
-const upload = multer({ storage: storage });
+const upload = multer({ 
+  storage: storage,
+  limits: {
+    fileSize: 3 * 1024 * 1024 // 3MB limit
+  }
+});
 
 // Song Schema
 const songSchema = new mongoose.Schema({
@@ -120,9 +125,14 @@ app.post('/api/songs', upload.single('file'), async (req, res) => {
   try {
     const { title, artist, duration } = req.body;
     
+    if (req.file.size > 3 * 1024 * 1024) { // 3MB
+      return res.status(413).json({ 
+        message: 'File too large. Please use a file smaller than 3MB.' 
+      });
+    }
+
     let filePath;
     if (process.env.NODE_ENV === 'production') {
-      //will use cloud storage in production
       const fileBuffer = req.file.buffer;
       const fileBase64 = fileBuffer.toString('base64');
       filePath = `data:${req.file.mimetype};base64,${fileBase64}`;

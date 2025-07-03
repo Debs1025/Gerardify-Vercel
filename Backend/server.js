@@ -148,23 +148,30 @@ app.get('/', (req, res) => {
 // Routes
 app.post('/api/songs', upload.single('file'), async (req, res) => {
   try {
+    console.log('=== Song Upload Debug ===');
+    console.log('Request body:', req.body);
+    console.log('File info:', req.file ? {
+      filename: req.file.filename,
+      path: req.file.path,
+      size: req.file.size,
+      mimetype: req.file.mimetype
+    } : 'No file');
+
     const { title, artist, duration } = req.body;
 
     if (!req.file) {
+      console.log('ERROR: No file uploaded');
       return res.status(400).json({ message: 'No file uploaded' });
     }
 
     if (req.file.size > 6 * 1024 * 1024) {
+      console.log('ERROR: File too large:', req.file.size);
       return res.status(413).json({ 
         message: 'File too large. Please use a file smaller than 6MB.' 
       });
     }
 
-    console.log('File upload details:', {
-      filename: req.file.filename,
-      path: req.file.path,
-      size: req.file.size
-    });
+    console.log('Creating song with filePath:', req.file.path);
 
     const song = new Song({
       title,
@@ -174,10 +181,12 @@ app.post('/api/songs', upload.single('file'), async (req, res) => {
       publicId: req.file.filename     
     });
 
-   await song.save();
-    res.status(201).json(song);
+    const savedSong = await song.save();
+    console.log('Song saved successfully:', savedSong);
+    
+    res.status(201).json(savedSong);
   } catch (error) {
-    console.error('Error uploading song:', error);
+    console.error('ERROR in song upload:', error);
     res.status(500).json({ message: error.message });
   }
 });
@@ -424,10 +433,18 @@ app.get('/api/debug/playlists', async (req, res) => {
   }
 });
 
-// Serve uploaded files (only in development)
-if (process.env.NODE_ENV !== 'production') {
-  app.use('/uploads', express.static('uploads'));
-}
+app.get('/api/test-config', (req, res) => {
+  res.json({
+    cloudinary: {
+      cloud_name: process.env.CLOUDINARY_CLOUD_NAME || 'dbapmmimu2',
+      api_key: process.env.CLOUDINARY_API_KEY ? 'Set' : 'Not set',
+      api_secret: process.env.CLOUDINARY_API_SECRET ? 'Set' : 'Not set',
+      cloudinary_url: process.env.CLOUDINARY_URL ? 'Set' : 'Not set'
+    },
+    mongodb: mongoose.connection.readyState === 1 ? 'connected' : 'disconnected',
+    node_env: process.env.NODE_ENV
+  });
+});
 
 // Export for Vercel
 module.exports = app;

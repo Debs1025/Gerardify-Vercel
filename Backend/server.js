@@ -15,53 +15,13 @@ app.use(express.json({ limit: '6mb' }));
 app.use(express.urlencoded({ limit: '6mb', extended: true }));
 
 app.use((req, res, next) => {
-  const origin = req.headers.origin;
-  console.log('Request origin:', origin); 
-  
-  const allowedOrigins = [
-    'https://gerardify-vercel-frontend.vercel.app',
-    'https://gerardify-vercel-frontend-mtuddiwat-erick-de-belens-projects.vercel.app',
-    'http://localhost:3000',
-    'http://localhost:5173'
-  ];
-  
-  if (allowedOrigins.includes(origin)) {
-    res.header('Access-Control-Allow-Origin', origin);
-    res.header('Access-Control-Allow-Credentials', 'true');
-  } else if (origin && origin.includes('vercel.app')) {
 
-    res.header('Access-Control-Allow-Origin', origin);
-    res.header('Access-Control-Allow-Credentials', 'true');
-  }
-  
+  res.header('Access-Control-Allow-Origin', '*');
   res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
   res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, Accept, Origin, X-Requested-With');
   
   if (req.method === 'OPTIONS') {
     return res.status(200).end();
-  }
-  
-  next();
-});
-
-
-app.use((req, res, next) => {
-  const origin = req.headers.origin;
-  const allowedOrigins = [
-    'https://gerardify-vercel-frontend.vercel.app',
-    'https://gerardify-vercel-frontend-mtuddiwat-erick-de-belens-projects.vercel.app'
-  ];
-  
-  if (allowedOrigins.includes(origin) || (origin && origin.includes('vercel.app'))) {
-    res.header('Access-Control-Allow-Origin', origin);
-  }
-  
-  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
-  res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, Accept, Origin, X-Requested-With');
-  res.header('Access-Control-Allow-Credentials', 'true');
-  
-  if (req.method === 'OPTIONS') {
-    return res.sendStatus(200);
   }
   
   next();

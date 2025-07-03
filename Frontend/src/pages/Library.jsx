@@ -41,42 +41,36 @@ function Library({ setCurrentSong, playlists, setPlaylists, setCurrentPlaylist, 
     }
   };
 
-  const handleFileSelect = (e) => {
-    const file = e.target.files[0];
-    if (file) {
-      if (file.size > 50 * 1024 * 1024) {
-      alert('File is too large. Please select a file smaller than 50MB.');
+const handleFileSelect = (e) => {
+  const file = e.target.files[0];
+  if (file) {
+    if (file.size > 6 * 1024 * 1024) {
+      alert('File is too large. Please select a file smaller than 6MB.');
       return;
     }
       
-      const url = URL.createObjectURL(file);
-      setNewSongData({
-        ...newSongData,
-        file: file,
-        tempUrl: url,
-        title: file.name.replace(/\.[^/.]+$/, "")
-      });
-      setShowSongForm(true);
-    }
-  };
+    const url = URL.createObjectURL(file);
+    setNewSongData({
+      ...newSongData,
+      file: file,
+      tempUrl: url,
+      title: file.name.replace(/\.[^/.]+$/, "")
+    });
+    setShowSongForm(true);
+  }
+};
 
-  const compressAudio = (file) => {
+const compressAudio = (file) => {
   return new Promise((resolve) => {
     const audio = new Audio(URL.createObjectURL(file));
     
     audio.addEventListener('loadedmetadata', () => {
-      if (file.size <= 50 * 1024 * 1024) { // 50MB
-        resolve(file);
-        return;
-      }
-      
-      if (file.size > 50 * 1024 * 1024) { 
-        alert('File is too large. Please use a file smaller than 50MB.');
-        resolve(null);
-        return;
-      }
-      
       resolve(file);
+    });
+    
+    audio.addEventListener('error', () => {
+      alert('Error loading audio file. Please try a different file.');
+      resolve(null);
     });
   });
 };
@@ -118,8 +112,6 @@ function Library({ setCurrentSong, playlists, setPlaylists, setCurrentPlaylist, 
             artist: data.artist,
             duration: data.duration,
             url: data.filePath 
-            ? data.filePath 
-            : `https://gerardify-vercel-backend.vercel.app/${data.filePath}`
           };
 
           setSongs(prevSongs => [...prevSongs, newSong]);
@@ -156,8 +148,6 @@ function Library({ setCurrentSong, playlists, setPlaylists, setCurrentPlaylist, 
           artist: song.artist,
           duration: song.duration,
           url: song.filePath
-          ? song.filePath 
-          : `https://gerardify-vercel-backend.vercel.app/${song.filePath}`
         }));
         setSongs(formattedSongs);
       })
@@ -184,16 +174,17 @@ function Library({ setCurrentSong, playlists, setPlaylists, setCurrentPlaylist, 
   };
 
   const handlePlayClick = (e, song) => {
-    e.stopPropagation(); 
-    setCurrentSong({
-      id: song.id,
-      title: song.title,
-      artist: song.artist,
-      url: song.url
-    });
-    setCurrentPlaylist(songs);
-    setIsPlaying(true);
-  };
+  e.stopPropagation(); 
+  setCurrentSong({
+    id: song.id,
+    title: song.title,
+    artist: song.artist,
+    url: song.url, 
+    src: song.url  
+  });
+  setCurrentPlaylist(songs);
+  setIsPlaying(true);
+};
   
   return (
     <div className="library-container">

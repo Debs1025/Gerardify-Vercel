@@ -11,20 +11,31 @@ const app = express();
 const port = process.env.PORT || 5000;
 
 // Middleware
+app.use(express.json({ limit: '6mb' })); 
+app.use(express.urlencoded({ limit: '6mb', extended: true }));
+
+
 app.use(cors({
-  origin: [
-    'http://localhost:5173',
-    'http://localhost:3000',
-    'https://gerardify-vercel-frontend.vercel.app',
-    process.env.FRONTEND_URL, 
-    /^https:\/\/.*\.vercel\.app$/
-  ],
+  origin: function (origin, callback) {
+    if (!origin) return callback(null, true);
+    
+    const allowedOrigins = [
+      'http://localhost:5173',
+      'http://localhost:3000',
+      'https://gerardify-vercel-frontend.vercel.app'
+    ];
+    
+    if (allowedOrigins.includes(origin) || /^https:\/\/.*\.vercel\.app$/.test(origin)) {
+      return callback(null, true);
+    }
+    
+    return callback(null, true);
+  },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'Accept']
+  allowedHeaders: ['Content-Type', 'Authorization', 'Accept', 'Origin', 'X-Requested-With'],
+  optionsSuccessStatus: 200
 }));
-
-app.use(express.json());
 
 // MongoDB Connection
 const mongoUri = process.env.MONGODB_URI || 'mongodb+srv://edebelen:erickdebelen1025@erickdebelen.0poxbsq.mongodb.net/gerardify?retryWrites=true&w=majority&appName=ErickDeBelen';
@@ -39,11 +50,18 @@ if (process.env.NODE_ENV === 'production') {
     console.error('Missing Cloudinary environment variables');
   }
 }
-cloudinary.config({
-  cloud_name: 'dbapmmimu2',
-  api_key: process.env.CLOUDINARY_API_KEY,
-  api_secret: process.env.CLOUDINARY_API_SECRET,
-});
+
+if (process.env.CLOUDINARY_URL) {
+  cloudinary.config({
+    cloudinary_url: process.env.CLOUDINARY_URL
+  });
+} else {
+  cloudinary.config({
+    cloud_name: process.env.CLOUDINARY_CLOUD_NAME || 'dbapmmimu2',
+    api_key: process.env.CLOUDINARY_API_KEY || '819751423758252',
+    api_secret: process.env.CLOUDINARY_API_SECRET || 'kMsHsylKp56yPHHNqFx03DCUwm4',
+  });
+}
 
 // Create uploads directory if it doesn't exist 
 const uploadsDir = path.join(__dirname, 'uploads');
@@ -57,15 +75,16 @@ const storage = new CloudinaryStorage({
   params: {
     folder: 'gerardify-songs',
     resource_type: 'auto',
-    allowed_formats: ['mp3', 'wav', 'ogg', 'flac', 'm4a'],
-    public_id: (req, file) => `song-${Date.now()}`, // ✅ Add unique public_id
+    allowed_formats: ['mp3', 'wav', 'ogg', 'flac', 'm4a', 'aac'],
+    public_id: (req, file) => `song-${Date.now()}`,
   },
 });
 
 const upload = multer({ 
   storage: storage,
   limits: {
-    fileSize: 50 * 1024 * 1024 // 50MB limit
+    fileSize: 6 * 1024 * 1024, 
+    fieldSize: 6 * 1024 * 1024  
   }
 });
 
@@ -110,14 +129,6 @@ app.get('/api/health', (req, res) => {
   });
 });
 
-app.options('*', (req, res) => {
-  res.header('Access-Control-Allow-Origin', req.headers.origin);
-  res.header('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE,OPTIONS');
-  res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, Accept');
-  res.header('Access-Control-Allow-Credentials', true);
-  res.sendStatus(200);
-});
-
 app.get('/', (req, res) => {
   res.json({ 
     message: 'Gerardify Backend API',
@@ -139,11 +150,21 @@ app.post('/api/songs', upload.single('file'), async (req, res) => {
   try {
     const { title, artist, duration } = req.body;
 
-    if (req.file.size > 50 * 1024 * 1024) { // 50MB
+    if (!req.file) {
+      return res.status(400).json({ message: 'No file uploaded' });
+    }
+
+    if (req.file.size > 6 * 1024 * 1024) {
       return res.status(413).json({ 
-        message: 'File too large. Please use a file smaller than 50MB.' 
+        message: 'File too large. Please use a file smaller than 6MB.' 
       });
     }
+
+    console.log('File upload details:', {
+      filename: req.file.filename,
+      path: req.file.path,
+      size: req.file.size
+    });
 
     const song = new Song({
       title,
@@ -153,9 +174,10 @@ app.post('/api/songs', upload.single('file'), async (req, res) => {
       publicId: req.file.filename     
     });
 
-    await song.save();
+   await song.save();
     res.status(201).json(song);
   } catch (error) {
+    console.error('Error uploading song:', error);
     res.status(500).json({ message: error.message });
   }
 });

@@ -10,10 +10,24 @@ const app = express();
 const port = process.env.PORT || 5000;
 
 // Middleware
-app.use(express.json({ limit: '6mb' })); 
-app.use(express.urlencoded({ limit: '6mb', extended: true }));
+app.use(express.json({ limit: '50mb' })); 
+app.use(express.urlencoded({ limit: '50mb', extended: true }));
 
 app.use((req, res, next) => {
+  const origin = req.headers.origin;
+  
+  // Log the origin for debugging
+  console.log('Request origin:', origin);
+  
+  // Allow all Vercel deployments and localhost
+  if (!origin || 
+      origin.includes('vercel.app') || 
+      origin.includes('localhost') ||
+      origin.includes('127.0.0.1')) {
+    res.header('Access-Control-Allow-Origin', origin || '*');
+  } else {
+    res.header('Access-Control-Allow-Origin', '*');
+  }
 
   res.header('Access-Control-Allow-Origin', '*');
   res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
@@ -31,6 +45,14 @@ const mongoUri = process.env.MONGODB_URI || 'mongodb+srv://edebelen:MbvUtR5pgAQ2
 mongoose.connect(mongoUri, {
   useNewUrlParser: true,
   useUnifiedTopology: true
+});
+
+mongoose.connection.on('connected', () => {
+  console.log('✅ MongoDB connected successfully');
+});
+
+mongoose.connection.on('error', (err) => {
+  console.error('❌ MongoDB connection error:', err);
 });
 
 // Cloudinary Configuration
@@ -72,8 +94,8 @@ const storage = new CloudinaryStorage({
 const upload = multer({ 
   storage: storage,
   limits: {
-    fileSize: 6 * 1024 * 1024, 
-    fieldSize: 6 * 1024 * 1024  
+    fileSize: 50 * 1024 * 1024,
+    fieldSize: 50 * 1024 * 1024
   }
 });
 
@@ -139,7 +161,6 @@ app.post('/api/songs', upload.single('file'), async (req, res) => {
   try {
     console.log('=== Song Upload Debug ===');
     console.log('Received request from origin:', req.headers.origin);
-    console.log('Request headers:', req.headers);
     console.log('Request body:', req.body);
     console.log('File info:', req.file ? {
       filename: req.file.filename,
@@ -155,10 +176,11 @@ app.post('/api/songs', upload.single('file'), async (req, res) => {
       return res.status(400).json({ message: 'No file uploaded' });
     }
 
-    if (req.file.size > 6 * 1024 * 1024) {
+    // Increased file size limit to 50MB
+    if (req.file.size > 50 * 1024 * 1024) {
       console.log('ERROR: File too large:', req.file.size);
       return res.status(413).json({ 
-        message: 'File too large. Please use a file smaller than 6MB.' 
+        message: 'File too large. Please use a file smaller than 50MB.' 
       });
     }
 

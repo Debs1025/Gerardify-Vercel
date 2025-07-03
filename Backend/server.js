@@ -14,34 +14,35 @@ const port = process.env.PORT || 5000;
 app.use(express.json({ limit: '6mb' })); 
 app.use(express.urlencoded({ limit: '6mb', extended: true }));
 
+app.use((req, res, next) => {
+  const origin = req.headers.origin;
+  console.log('Request origin:', origin); 
+  
+  const allowedOrigins = [
+    'https://gerardify-vercel-frontend.vercel.app',
+    'https://gerardify-vercel-frontend-mtuddiwat-erick-de-belens-projects.vercel.app',
+    'http://localhost:3000',
+    'http://localhost:5173'
+  ];
+  
+  if (allowedOrigins.includes(origin)) {
+    res.header('Access-Control-Allow-Origin', origin);
+    res.header('Access-Control-Allow-Credentials', 'true');
+  } else if (origin && origin.includes('vercel.app')) {
 
-app.use(cors({
-  origin: function (origin, callback) {
-    // Allow requests with no origin (mobile apps, etc.)
-    if (!origin) return callback(null, true);
-    
-    const allowedOrigins = [
-      'https://gerardify-vercel-frontend.vercel.app',
-      'https://gerardify-vercel-frontend-mtuddiwat-erick-de-belens-projects.vercel.app',
-      'http://localhost:3000',
-      'http://localhost:5173'
-    ];
-    
-    if (allowedOrigins.includes(origin)) {
-      return callback(null, true);
-    }
-    
-    if (origin && origin.includes('vercel.app')) {
-      return callback(null, true);
-    }
-    
-    callback(new Error('Not allowed by CORS'));
-  },
-  credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'Accept', 'Origin', 'X-Requested-With'],
-  optionsSuccessStatus: 200
-}));
+    res.header('Access-Control-Allow-Origin', origin);
+    res.header('Access-Control-Allow-Credentials', 'true');
+  }
+  
+  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+  res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, Accept, Origin, X-Requested-With');
+  
+  if (req.method === 'OPTIONS') {
+    return res.status(200).end();
+  }
+  
+  next();
+});
 
 
 app.use((req, res, next) => {

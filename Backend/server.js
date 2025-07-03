@@ -16,13 +16,55 @@ app.use(express.urlencoded({ limit: '6mb', extended: true }));
 
 
 app.use(cors({
-  origin: 'https://gerardify-vercel-frontend.vercel.app',
+  origin: function (origin, callback) {
+    // Allow requests with no origin (mobile apps, etc.)
+    if (!origin) return callback(null, true);
+    
+    const allowedOrigins = [
+      'https://gerardify-vercel-frontend.vercel.app',
+      'https://gerardify-vercel-frontend-mtuddiwat-erick-de-belens-projects.vercel.app',
+      'http://localhost:3000',
+      'http://localhost:5173'
+    ];
+    
+    if (allowedOrigins.includes(origin)) {
+      return callback(null, true);
+    }
+    
+    if (origin && origin.includes('vercel.app')) {
+      return callback(null, true);
+    }
+    
+    callback(new Error('Not allowed by CORS'));
+  },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization', 'Accept', 'Origin', 'X-Requested-With'],
   optionsSuccessStatus: 200
 }));
 
+
+app.use((req, res, next) => {
+  const origin = req.headers.origin;
+  const allowedOrigins = [
+    'https://gerardify-vercel-frontend.vercel.app',
+    'https://gerardify-vercel-frontend-mtuddiwat-erick-de-belens-projects.vercel.app'
+  ];
+  
+  if (allowedOrigins.includes(origin) || (origin && origin.includes('vercel.app'))) {
+    res.header('Access-Control-Allow-Origin', origin);
+  }
+  
+  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+  res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, Accept, Origin, X-Requested-With');
+  res.header('Access-Control-Allow-Credentials', 'true');
+  
+  if (req.method === 'OPTIONS') {
+    return res.sendStatus(200);
+  }
+  
+  next();
+});
 
 // MongoDB Connection
 const mongoUri = process.env.MONGODB_URI || 'mongodb+srv://edebelen:MbvUtR5pgAQ2k3q0@erickdebelen.0poxbsq.mongodb.net/?retryWrites=true&w=majority&appName=ErickDeBelen';

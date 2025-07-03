@@ -16,29 +16,16 @@ app.use(express.urlencoded({ limit: '6mb', extended: true }));
 
 
 app.use(cors({
-  origin: function (origin, callback) {
-    if (!origin) return callback(null, true);
-    
-    const allowedOrigins = [
-      'http://localhost:5173',
-      'http://localhost:3000',
-      'https://gerardify-vercel-frontend.vercel.app'
-    ];
-    
-    if (allowedOrigins.includes(origin) || /^https:\/\/.*\.vercel\.app$/.test(origin)) {
-      return callback(null, true);
-    }
-    
-    return callback(null, true);
-  },
+  origin: 'https://gerardify-vercel-frontend.vercel.app',
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization', 'Accept', 'Origin', 'X-Requested-With'],
   optionsSuccessStatus: 200
 }));
 
+
 // MongoDB Connection
-const mongoUri = process.env.MONGODB_URI || 'mongodb+srv://edebelen:MbvUtR5pgAQ2k3q0@erickdebelen.0poxbsq.mongodb.net/gerardify?retryWrites=true&w=majority&appName=ErickDeBelen';
+const mongoUri = process.env.MONGODB_URI || 'mongodb+srv://edebelen:MbvUtR5pgAQ2k3q0@erickdebelen.0poxbsq.mongodb.net/?retryWrites=true&w=majority&appName=ErickDeBelen';
 mongoose.connect(mongoUri, {
   useNewUrlParser: true,
   useUnifiedTopology: true
@@ -149,6 +136,8 @@ app.get('/', (req, res) => {
 app.post('/api/songs', upload.single('file'), async (req, res) => {
   try {
     console.log('=== Song Upload Debug ===');
+    console.log('Received request from origin:', req.headers.origin);
+    console.log('Request headers:', req.headers);
     console.log('Request body:', req.body);
     console.log('File info:', req.file ? {
       filename: req.file.filename,

@@ -182,17 +182,18 @@ app.get('/', (req, res) => {
       'POST /api/songs',
       'GET /api/playlists',
       'POST /api/playlists',
-      'GET /api/playlists/:id'
+      'GET /api/playlists/:id',
+      'POST /api/auth/register',
+      'POST /api/auth/login',
     ],
     timestamp: new Date().toISOString()
   });
 });
 
 //Authentication Routes
-// Replace your registration route (around line 189) with this:
 app.post('/api/auth/register', async (req, res) => {
   try {
-    console.log('Checking registration request...');
+    console.log('=== REGISTRATION DEBUG ===');
     console.log('Request body:', req.body);
     console.log('Content-Type:', req.headers['content-type']);
     
@@ -257,7 +258,6 @@ app.post('/api/auth/register', async (req, res) => {
     });
   } catch (error) {
     console.error('Registration error:', error);
-    console.error('Error stack:', error.stack);
     res.status(500).json({ message: error.message });
   }
 });

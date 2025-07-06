@@ -9,7 +9,7 @@ import Library from './pages/Library'
 import MusicPlayer from './components/MusicPlayer'
 import Album from './pages/Album'
 import Song from './pages/Song'
-import Login from '/authentication/Login';
+import Login from './authentication/Login';
 
 function App() {
   const [currentSong, setCurrentSong] = useState(null);

@@ -100,6 +100,66 @@ const upload = multer({
   }
 });
 
+// Song Schema
+const songSchema = new mongoose.Schema({
+  title: { type: String, required: true },
+  artist: { type: String, required: true },
+  duration: { type: String, required: true },
+  filePath: { type: String, required: true },
+  publicId: { type: String },
+  userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true }, // Add this line
+  createdAt: { type: Date, default: Date.now }
+});
+
+const Song = mongoose.model('Song', songSchema);
+
+// Playlist Schema
+const playlistSchema = new mongoose.Schema({
+  id: { type: Number, required: true },
+  name: { type: String, required: true },
+  artist: { type: String, required: true },
+  year: { type: Number, default: () => new Date().getFullYear() },
+  userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true }, // Add this line
+  songs: [{
+    _id: { type: mongoose.Schema.Types.ObjectId, ref: 'Song' },
+    title: { type: String, required: true },
+    artist: { type: String, required: true },
+    duration: { type: String, required: true },
+    filePath: { type: String, required: true }
+  }],
+  createdAt: { type: Date, default: Date.now }
+});
+
+const Playlist = mongoose.model('Playlist', playlistSchema);
+
+// User Schema
+const userSchema = new mongoose.Schema({
+  username: { type: String, required: true, unique: true },
+  email: { type: String, required: true, unique: true },
+  password: { type: String, required: true },
+  createdAt: { type: Date, default: Date.now }
+});
+
+const User = mongoose.model('User', userSchema);
+
+// Authentication Middleware
+const authenticateToken = (req, res, next) => {
+  const authHeader = req.headers['authorization'];
+  const token = authHeader && authHeader.split(' ')[1];
+
+  if (!token) {
+    return res.status(401).json({ message: 'Access token required' });
+  }
+
+  jwt.verify(token, process.env.JWT_SECRET || 'gerardify-project', (err, user) => {
+    if (err) {
+      return res.status(403).json({ message: 'Invalid or expired token' });
+    }
+    req.user = user;
+    next();
+  });
+};
+
 // Checks if the database is connected
 app.get('/api/health', (req, res) => {
   const mongoStatus = mongoose.connection.readyState === 1 ? 'connected' : 'disconnected';
@@ -253,7 +313,6 @@ app.post('/api/songs', authenticateToken, upload.single('file'), async (req, res
 
     const { title, artist, duration } = req.body;
 
-    // Validate required fields
     if (!title || !artist || !duration) {
       console.log('ERROR: Missing required fields');
       return res.status(400).json({ 
@@ -266,40 +325,25 @@ app.post('/api/songs', authenticateToken, upload.single('file'), async (req, res
       return res.status(400).json({ message: 'No file uploaded' });
     }
 
-    // Validate user ID
-    if (!req.user || !req.user.userId) {
-      console.log('ERROR: User ID missing');
-      return res.status(401).json({ message: 'User authentication failed' });
-    }
-
     console.log('Creating song with filePath:', req.file.path);
     console.log('Cloudinary public_id:', req.file.public_id);
     console.log('Cloudinary filename:', req.file.filename);
 
-    // Create song object with proper validation
-    const songData = {
+    const song = new Song({
       title: title.trim(),
       artist: artist.trim(),
       duration: duration.toString(),
       userId: req.user.userId,
-      filePath: req.file.path,
+      filePath: req.file.path, 
       publicId: req.file.public_id || req.file.filename
-    };
+    });
 
-    console.log('Song data before save:', songData);
+    console.log('Song object before save:', song);
 
-    // Validate song data before saving
-    if (!songData.title || !songData.artist || !songData.duration || !songData.filePath) {
-      console.log('ERROR: Song data validation failed');
-      return res.status(400).json({ message: 'Invalid song data' });
-    }
-
-    const song = new Song(songData);
     const savedSong = await song.save();
-    
     console.log('Song saved successfully:', savedSong);
     
-    res.status(201).json({
+    const responseData = {
       _id: savedSong._id,
       title: savedSong.title,
       artist: savedSong.artist,
@@ -308,29 +352,13 @@ app.post('/api/songs', authenticateToken, upload.single('file'), async (req, res
       publicId: savedSong.publicId,
       userId: savedSong.userId,
       createdAt: savedSong.createdAt
-    });
+    };
+    
+    res.status(201).json(responseData);
   } catch (error) {
     console.error('ERROR in song upload:', error);
-    console.error('Error name:', error.name);
-    console.error('Error message:', error.message);
-    
-    // Handle specific MongoDB validation errors
-    if (error.name === 'ValidationError') {
-      const validationErrors = Object.values(error.errors).map(err => err.message);
-      console.error('Validation errors:', validationErrors);
-      return res.status(400).json({ 
-        message: 'Validation failed',
-        errors: validationErrors 
-      });
-    }
-    
-    // Handle MongoDB duplicate key error
-    if (error.code === 11000) {
-      return res.status(400).json({ 
-        message: 'Duplicate entry',
-        error: 'Song with this data already exists' 
-      });
-    }
+    console.error('Error details:', error.message);
+    console.error('Error stack:', error.stack);
     
     // Clean up Cloudinary file if it was uploaded
     if (req.file && req.file.public_id) {

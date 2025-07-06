@@ -191,6 +191,25 @@ app.get('/', (req, res) => {
 });
 
 //Authentication Routes
+
+// Test Registration Route
+app.post('/api/test-register', async (req, res) => {
+  try {
+    console.log('Test registration route hit');
+    console.log('Request body:', req.body);
+    console.log('Content-Type:', req.headers['content-type']);
+    
+    res.json({ 
+      message: 'Test registration route working',
+      body: req.body,
+      timestamp: new Date().toISOString()
+    });
+  } catch (error) {
+    console.error('Test registration error:', error);
+    res.status(500).json({ message: error.message });
+  }
+});
+
 app.post('/api/auth/register', async (req, res) => {
   try {
     console.log('=== REGISTRATION DEBUG ===');
@@ -227,6 +246,7 @@ app.post('/api/auth/register', async (req, res) => {
     const hashedPassword = await bcrypt.hash(password, 10);
 
     console.log('Creating new user...');
+    
     // Create user
     const user = new User({
       username,
@@ -349,7 +369,7 @@ app.post('/api/songs', authenticateToken, upload.single('file'), async (req, res
       duration,
       filePath: req.file.path,      
       publicId: req.file.filename,
-      userId: req.user.userId // Add user ID
+      userId: req.user.userId 
     });
 
     const savedSong = await song.save();

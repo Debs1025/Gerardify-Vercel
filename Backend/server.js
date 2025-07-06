@@ -34,6 +34,13 @@ app.use((req, res, next) => {
   next();
 });
 
+// Check JSON body content type
+app.use((req, res, next) => {
+  console.log('Content-Type:', req.headers['content-type']);
+  console.log('Request body:', req.body);
+  next();
+});
+
 // MongoDB Connection
 const mongoUri = process.env.MONGODB_URI || 'mongodb+srv://edebelen:MbvUtR5pgAQ2k3q0@erickdebelen.0poxbsq.mongodb.net/gerardify?retryWrites=true&w=majority';
 mongoose.connect(mongoUri, {
@@ -182,14 +189,31 @@ app.get('/', (req, res) => {
 });
 
 //Authentication Routes
+// Replace your registration route (around line 189) with this:
 app.post('/api/auth/register', async (req, res) => {
   try {
+    console.log('Checking registration request...');
+    console.log('Request body:', req.body);
+    console.log('Content-Type:', req.headers['content-type']);
+    
     const { username, email, password } = req.body;
+    
+    // Validate input
+    if (!username || !email || !password) {
+      console.log('Missing required fields:', { username: !!username, email: !!email, password: !!password });
+      return res.status(400).json({ 
+        message: 'Username, email, and password are required' 
+      });
+    }
+
+    console.log('Checking for existing user with:', { email, username });
 
     // Check if user already exists
     const existingUser = await User.findOne({ 
       $or: [{ email }, { username }] 
     });
+    
+    console.log('Existing user found:', existingUser);
     
     if (existingUser) {
       return res.status(400).json({ 
@@ -197,9 +221,11 @@ app.post('/api/auth/register', async (req, res) => {
       });
     }
 
+    console.log('Hashing password...');
     // Hash password
     const hashedPassword = await bcrypt.hash(password, 10);
 
+    console.log('Creating new user...');
     // Create user
     const user = new User({
       username,
@@ -207,7 +233,9 @@ app.post('/api/auth/register', async (req, res) => {
       password: hashedPassword
     });
 
+    console.log('Saving user to database...');
     await user.save();
+    console.log('User saved successfully:', user._id);
 
     // Generate JWT token
     const token = jwt.sign(
@@ -216,6 +244,8 @@ app.post('/api/auth/register', async (req, res) => {
       { expiresIn: '24h' }
     );
 
+    console.log('Registration successful for user:', user._id);
+    
     res.status(201).json({
       message: 'User created successfully',
       token,
@@ -227,6 +257,7 @@ app.post('/api/auth/register', async (req, res) => {
     });
   } catch (error) {
     console.error('Registration error:', error);
+    console.error('Error stack:', error.stack);
     res.status(500).json({ message: error.message });
   }
 });

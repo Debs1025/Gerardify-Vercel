@@ -297,6 +297,7 @@ app.get('/api/auth/me', authenticateToken, async (req, res) => {
 });
 
 // Song Routes
+// Song Routes
 app.post('/api/songs', authenticateToken, upload.single('file'), async (req, res) => {
   try {
     console.log('=== Song Upload Debug ===');
@@ -311,6 +312,14 @@ app.post('/api/songs', authenticateToken, upload.single('file'), async (req, res
     } : 'No file');
 
     const { title, artist, duration } = req.body;
+
+    // Validate required fields
+    if (!title || !artist || !duration) {
+      console.log('ERROR: Missing required fields');
+      return res.status(400).json({ 
+        message: 'Missing required fields: title, artist, and duration are required' 
+      });
+    }
 
     if (!req.file) {
       console.log('ERROR: No file uploaded');
@@ -327,8 +336,8 @@ app.post('/api/songs', authenticateToken, upload.single('file'), async (req, res
     console.log('Creating song with filePath:', req.file.path);
 
     const song = new Song({
-      title,
-      artist,
+      title: title.trim(),
+      artist: artist.trim(),
       duration,
       filePath: req.file.path,      
       publicId: req.file.filename,
@@ -341,7 +350,23 @@ app.post('/api/songs', authenticateToken, upload.single('file'), async (req, res
     res.status(201).json(savedSong);
   } catch (error) {
     console.error('ERROR in song upload:', error);
-    res.status(500).json({ message: error.message });
+    
+    if (req.file && req.file.path) {
+      try {
+        const fs = require('fs');
+        if (fs.existsSync(req.file.path)) {
+          fs.unlinkSync(req.file.path);
+        }
+      } catch (cleanupError) {
+        console.error('Error cleaning up file:', cleanupError);
+      }
+    }
+    
+    // Return proper JSON error response
+    res.status(500).json({ 
+      message: 'Internal server error during song upload',
+      error: process.env.NODE_ENV === 'development' ? error.message : 'Upload failed'
+    });
   }
 });
 
@@ -598,6 +623,24 @@ app.get('/api/test-config', (req, res) => {
     },
     mongodb: mongoose.connection.readyState === 1 ? 'connected' : 'disconnected',
     node_env: process.env.NODE_ENV
+  });
+});
+
+app.use((error, req, res, next) => {
+  console.error('Unhandled error:', error);
+  
+  // Handle multer errors
+  if (error instanceof multer.MulterError) {
+    if (error.code === 'LIMIT_FILE_SIZE') {
+      return res.status(413).json({ message: 'File too large' });
+    }
+    return res.status(400).json({ message: error.message });
+  }
+  
+  // Handle other errors
+  res.status(500).json({ 
+    message: 'Internal server error',
+    error: process.env.NODE_ENV === 'development' ? error.message : 'Something went wrong'
   });
 });
 

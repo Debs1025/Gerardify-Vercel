@@ -312,19 +312,12 @@ app.post('/api/songs', authenticateToken, upload.single('file'), async (req, res
 
     const { title, artist, duration } = req.body;
 
-    // Validate required fields
-    if (!title || !artist || !duration) {
-      console.log('ERROR: Missing required fields');
-      return res.status(400).json({ 
-        message: 'Missing required fields: title, artist, and duration are required' 
-      });
-    }
-
     if (!req.file) {
       console.log('ERROR: No file uploaded');
       return res.status(400).json({ message: 'No file uploaded' });
     }
 
+    // Increased file size limit to 50MB
     if (req.file.size > 50 * 1024 * 1024) {
       console.log('ERROR: File too large:', req.file.size);
       return res.status(413).json({ 
@@ -332,17 +325,15 @@ app.post('/api/songs', authenticateToken, upload.single('file'), async (req, res
       });
     }
 
-    // For Cloudinary, use the secure_url or url, not path
-    const filePath = req.file.path || req.file.secure_url || req.file.url;
-    console.log('Creating song with filePath:', filePath);
+    console.log('Creating song with filePath:', req.file.path);
 
     const song = new Song({
-      title: title.trim(),
-      artist: artist.trim(),
+      title,
+      artist,
       duration,
-      filePath: filePath,      
-      publicId: req.file.filename || req.file.public_id,
-      userId: req.user.userId 
+      userId: req.user.userId,
+      filePath: req.file.path,
+      publicId: req.file.filename
     });
 
     const savedSong = await song.save();
@@ -352,12 +343,10 @@ app.post('/api/songs', authenticateToken, upload.single('file'), async (req, res
   } catch (error) {
     console.error('ERROR in song upload:', error);
     
-    // Clean up from Cloudinary if upload failed and we have a public_id
-    if (req.file && (req.file.public_id || req.file.filename)) {
+    if (req.file && req.file.public_id) {
       try {
-        const publicId = req.file.public_id || req.file.filename;
-        await cloudinary.uploader.destroy(publicId, { resource_type: 'video' });
-        console.log('Cleaned up Cloudinary file:', publicId);
+        await cloudinary.uploader.destroy(req.file.public_id, { resource_type: 'video' });
+        console.log('Cleaned up Cloudinary file:', req.file.public_id);
       } catch (cleanupError) {
         console.error('Error cleaning up Cloudinary file:', cleanupError);
       }

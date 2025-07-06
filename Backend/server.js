@@ -297,7 +297,6 @@ app.get('/api/auth/me', authenticateToken, async (req, res) => {
 });
 
 // Song Routes
-// Song Routes
 app.post('/api/songs', authenticateToken, upload.single('file'), async (req, res) => {
   try {
     console.log('=== Song Upload Debug ===');
@@ -333,14 +332,16 @@ app.post('/api/songs', authenticateToken, upload.single('file'), async (req, res
       });
     }
 
-    console.log('Creating song with filePath:', req.file.path);
+    // For Cloudinary, use the secure_url or url, not path
+    const filePath = req.file.path || req.file.secure_url || req.file.url;
+    console.log('Creating song with filePath:', filePath);
 
     const song = new Song({
       title: title.trim(),
       artist: artist.trim(),
       duration,
-      filePath: req.file.path,      
-      publicId: req.file.filename,
+      filePath: filePath,      
+      publicId: req.file.filename || req.file.public_id,
       userId: req.user.userId 
     });
 
@@ -351,14 +352,14 @@ app.post('/api/songs', authenticateToken, upload.single('file'), async (req, res
   } catch (error) {
     console.error('ERROR in song upload:', error);
     
-    if (req.file && req.file.path) {
+    // Clean up from Cloudinary if upload failed and we have a public_id
+    if (req.file && (req.file.public_id || req.file.filename)) {
       try {
-        const fs = require('fs');
-        if (fs.existsSync(req.file.path)) {
-          fs.unlinkSync(req.file.path);
-        }
+        const publicId = req.file.public_id || req.file.filename;
+        await cloudinary.uploader.destroy(publicId, { resource_type: 'video' });
+        console.log('Cleaned up Cloudinary file:', publicId);
       } catch (cleanupError) {
-        console.error('Error cleaning up file:', cleanupError);
+        console.error('Error cleaning up Cloudinary file:', cleanupError);
       }
     }
     

@@ -3,14 +3,24 @@ import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import '../styles/pages/Library.css';
 
-// Create an authenticated API
 const createAuthenticatedApi = () => {
   const token = localStorage.getItem('token');
+  
+  if (!token) {
+    console.error('No token found in localStorage');
+    window.location.href = '/';
+    return null;
+  }
+  
+  console.log('Token found:', token.substring(0, 20) + '...');
+  
   return axios.create({
     baseURL: 'https://gerardify-vercel-backend.vercel.app/api',
     headers: {
-      'Authorization': `Bearer ${token}`
-    }
+      'Authorization': `Bearer ${token}`,
+      'Content-Type': 'application/json'
+    },
+    timeout: 30000 // 30 second timeout
   });
 };
 
@@ -82,36 +92,65 @@ function Library({ setCurrentSong, playlists, setPlaylists, setCurrentPlaylist, 
   };
 
   const handleSongFormSubmit = async (e) => {
-    e.preventDefault();
-    if (!newSongData.file || !newSongData.title.trim() || !newSongData.artist.trim()) return;
+  e.preventDefault();
+  if (!newSongData.file || !newSongData.title.trim() || !newSongData.artist.trim()) {
+    alert('Please fill in all required fields');
+    return;
+  }
+
+  try {
+    console.log('Starting song upload...');
+    
+    // Check if we have a valid token
+    const token = localStorage.getItem('token');
+    if (!token) {
+      alert('Please log in again');
+      window.location.href = '/';
+      return;
+    }
 
     const compressedFile = await compressAudio(newSongData.file);
     if (!compressedFile) return;
 
     const audio = new Audio(newSongData.tempUrl);
     
-    await new Promise((resolve) => {
-      audio.addEventListener('loadedmetadata', () => {
-        const duration = Math.floor(audio.duration);
-        const minutes = Math.floor(duration / 60);
-        const seconds = duration % 60;
-        const formattedDuration = `${minutes}:${seconds.toString().padStart(2, '0')}`;
+    await new Promise((resolve, reject) => {
+      audio.addEventListener('loadedmetadata', async () => {
+        try {
+          const duration = Math.floor(audio.duration);
+          const minutes = Math.floor(duration / 60);
+          const seconds = duration % 60;
+          const formattedDuration = `${minutes}:${seconds.toString().padStart(2, '0')}`;
 
-        // Create FormData for file upload
-        const formData = new FormData();
-        formData.append('file', compressedFile); 
-        formData.append('title', newSongData.title);
-        formData.append('artist', newSongData.artist);
-        formData.append('duration', formattedDuration);
+          console.log('File details:', {
+            name: compressedFile.name,
+            size: compressedFile.size,
+            type: compressedFile.type,
+            duration: formattedDuration
+          });
 
-        // Upload to backend using authenticated API
-        const api = createAuthenticatedApi();
-        api.post('/songs', formData, {
-          headers: {
-            'Content-Type': 'multipart/form-data'
-          }
-        })
-        .then(response => {
+          // Create FormData for file upload
+          const formData = new FormData();
+          formData.append('file', compressedFile); 
+          formData.append('title', newSongData.title.trim());
+          formData.append('artist', newSongData.artist.trim());
+          formData.append('duration', formattedDuration);
+
+          console.log('Uploading to backend...');
+
+          // Direct axios call with explicit headers
+          const response = await axios.post(
+            'https://gerardify-vercel-backend.vercel.app/api/songs',
+            formData,
+            {
+              headers: {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'multipart/form-data'
+              },
+              timeout: 60000 // 60 second timeout for file uploads
+            }
+          );
+
           const data = response.data;
           console.log('Song upload response:', data);
           
@@ -120,7 +159,7 @@ function Library({ setCurrentSong, playlists, setPlaylists, setCurrentPlaylist, 
             title: data.title,
             artist: data.artist,
             duration: data.duration,
-            url: data.filePath // This is the Cloudinary URL
+            url: data.filePath
           };
 
           // Update songs state
@@ -129,14 +168,26 @@ function Library({ setCurrentSong, playlists, setPlaylists, setCurrentPlaylist, 
           
           alert('Song uploaded successfully!');
           console.log('New song added:', newSong);
-        })
-        .catch(error => {
-          console.error('Upload error details:', error.response?.data || error.message);
-          const errorMsg = error.response?.data?.message || 'Failed to upload song. Please try again.';
-          alert(`Upload failed: ${errorMsg}`); 
-        });
+          resolve();
+        } catch (error) {
+          console.error('Upload error:', error);
+          
+          if (error.response?.status === 401 || error.response?.status === 403) {
+            alert('Session expired. Please log in again.');
+            localStorage.removeItem('token');
+            localStorage.removeItem('user');
+            window.location.href = '/';
+          } else {
+            const errorMsg = error.response?.data?.message || 'Failed to upload song. Please try again.';
+            alert(`Upload failed: ${errorMsg}`);
+          }
+          reject(error);
+        }
+      });
 
-        resolve();
+      audio.addEventListener('error', () => {
+        alert('Error loading audio file. Please try a different file.');
+        reject(new Error('Audio load error'));
       });
     });
 
@@ -148,7 +199,12 @@ function Library({ setCurrentSong, playlists, setPlaylists, setCurrentPlaylist, 
       tempUrl: ''
     });
     setShowSongForm(false);
-  };
+
+  } catch (error) {
+    console.error('Error in song upload:', error);
+    alert('Upload failed. Please try again.');
+  }
+};
 
   useEffect(() => {
     const api = createAuthenticatedApi();
@@ -197,7 +253,7 @@ function Library({ setCurrentSong, playlists, setPlaylists, setCurrentPlaylist, 
       title: song.title,
       artist: song.artist,
       duration: song.duration,
-      url: song.url // This should be the Cloudinary URL
+      url: song.url 
     });
     setCurrentPlaylist(songs);
     setIsPlaying(true);

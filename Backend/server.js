@@ -331,11 +331,25 @@ app.post('/api/songs', authenticateToken, upload.single('file'), async (req, res
       return res.status(401).json({ message: 'Authentication failed' });
     }
 
+    // Validate ObjectId format BEFORE creating ObjectId
+    if (!mongoose.Types.ObjectId.isValid(req.user.userId)) {
+      console.log('ERROR: Invalid user ID format:', req.user.userId);
+      return res.status(400).json({ message: 'Invalid user ID format' });
+    }
+
     console.log('Creating song with filePath:', req.file.path);
     console.log('Cloudinary public_id:', req.file.public_id);
     console.log('Cloudinary filename:', req.file.filename);
-    
-    const userObjectId = new mongoose.Types.ObjectId(req.user.userId);
+
+    // Safely create ObjectId with try-catch
+    let userObjectId;
+    try {
+      userObjectId = new mongoose.Types.ObjectId(req.user.userId);
+      console.log('Successfully created ObjectId:', userObjectId);
+    } catch (objectIdError) {
+      console.log('ERROR: Failed to create ObjectId:', objectIdError);
+      return res.status(400).json({ message: 'Invalid user ID format' });
+    }
 
     const songData = {
       title: title.trim(),
@@ -348,8 +362,24 @@ app.post('/api/songs', authenticateToken, upload.single('file'), async (req, res
 
     console.log('Song data to save:', songData);
 
+    // Validate the song data before creating the document
+    if (!songData.title || !songData.artist || !songData.duration || !songData.filePath) {
+      console.log('ERROR: Invalid song data');
+      return res.status(400).json({ message: 'Invalid song data' });
+    }
+
     const song = new Song(songData);
     console.log('Song object before save:', song);
+
+    // Validate the document before saving
+    const validationError = song.validateSync();
+    if (validationError) {
+      console.log('ERROR: Validation failed:', validationError);
+      return res.status(400).json({ 
+        message: 'Validation failed',
+        errors: Object.values(validationError.errors).map(err => err.message)
+      });
+    }
 
     const savedSong = await song.save();
     console.log('Song saved successfully:', savedSong);
@@ -387,6 +417,13 @@ app.post('/api/songs', authenticateToken, upload.single('file'), async (req, res
         message: 'Invalid user ID format'
       });
     }
+
+    if (error.name === 'MongoError' || error.name === 'MongoNetworkError') {
+      console.error('MongoDB Error:', error);
+      return res.status(503).json({ 
+        message: 'Database connection error'
+      });
+    }
     
     // Clean up Cloudinary file if it was uploaded
     if (req.file && (req.file.public_id || req.file.filename)) {
@@ -400,7 +437,7 @@ app.post('/api/songs', authenticateToken, upload.single('file'), async (req, res
     }
     
     // Return proper JSON error response
-    res.status(500).json({ 
+    return res.status(500).json({ 
       message: 'Internal server error during song upload',
       error: process.env.NODE_ENV === 'development' ? error.message : 'Upload failed'
     });

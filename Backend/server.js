@@ -190,50 +190,24 @@ app.get('/', (req, res) => {
   });
 });
 
-//Authentication Routes
-
-// Test Registration Route
-app.post('/api/test-register', async (req, res) => {
-  try {
-    console.log('Test registration route hit');
-    console.log('Request body:', req.body);
-    console.log('Content-Type:', req.headers['content-type']);
-    
-    res.json({ 
-      message: 'Test registration route working',
-      body: req.body,
-      timestamp: new Date().toISOString()
-    });
-  } catch (error) {
-    console.error('Test registration error:', error);
-    res.status(500).json({ message: error.message });
-  }
+app.post('/api/test', (req, res) => {
+  res.json({ message: 'Test route works', body: req.body });
 });
 
+//Authentication Routes
 app.post('/api/auth/register', async (req, res) => {
   try {
-    console.log('=== REGISTRATION DEBUG ===');
-    console.log('Request body:', req.body);
-    console.log('Content-Type:', req.headers['content-type']);
-    
     const { username, email, password } = req.body;
     
-    // Validate input
     if (!username || !email || !password) {
-      console.log('Missing required fields:', { username: !!username, email: !!email, password: !!password });
       return res.status(400).json({ 
         message: 'Username, email, and password are required' 
       });
     }
 
-    console.log('Checking for existing user with:', { email, username });
-
-    // Check if user already exists
     const existingUser = await User.findOne({ 
       $or: [{ email }, { username }] 
     });
-    
-    console.log('Existing user found:', existingUser);
     
     if (existingUser) {
       return res.status(400).json({ 
@@ -241,31 +215,21 @@ app.post('/api/auth/register', async (req, res) => {
       });
     }
 
-    console.log('Hashing password...');
-    // Hash password
     const hashedPassword = await bcrypt.hash(password, 10);
-
-    console.log('Creating new user...');
     
-    // Create user
     const user = new User({
       username,
       email,
       password: hashedPassword
     });
 
-    console.log('Saving user to database...');
     await user.save();
-    console.log('User saved successfully:', user._id);
 
-    // Generate JWT token
     const token = jwt.sign(
       { userId: user._id, username: user.username },
-      process.env.JWT_SECRET || 'gerardify-project',
+      'gerardify-project',
       { expiresIn: '24h' }
     );
-
-    console.log('Registration successful for user:', user._id);
     
     res.status(201).json({
       message: 'User created successfully',
@@ -277,7 +241,6 @@ app.post('/api/auth/register', async (req, res) => {
       }
     });
   } catch (error) {
-    console.error('Registration error:', error);
     res.status(500).json({ message: error.message });
   }
 });

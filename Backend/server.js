@@ -152,7 +152,7 @@ const authenticateToken = (req, res, next) => {
     return res.status(401).json({ message: 'Access token required' });
   }
 
-  jwt.verify(token, process.env.JWT_SECRET || 'gerardify-secret-key', (err, user) => {
+  jwt.verify(token, process.env.JWT_SECRET || 'gerardify-project', (err, user) => {
     if (err) {
       return res.status(403).json({ message: 'Invalid or expired token' });
     }
@@ -220,7 +220,7 @@ app.post('/api/auth/register', async (req, res) => {
     // Generate JWT token
     const token = jwt.sign(
       { userId: user._id, username: user.username },
-      process.env.JWT_SECRET || 'gerardify-secret-key',
+      process.env.JWT_SECRET || 'gerardify-project',
       { expiresIn: '24h' }
     );
 
@@ -239,6 +239,7 @@ app.post('/api/auth/register', async (req, res) => {
   }
 });
 
+// Login Route
 app.post('/api/auth/login', async (req, res) => {
   try {
     const { email, password } = req.body;
@@ -258,7 +259,7 @@ app.post('/api/auth/login', async (req, res) => {
     // Generate JWT token
     const token = jwt.sign(
       { userId: user._id, username: user.username },
-      process.env.JWT_SECRET || 'gerardify-secret-key',
+      process.env.JWT_SECRET || 'gerardify-project',
       { expiresIn: '24h' }
     );
 

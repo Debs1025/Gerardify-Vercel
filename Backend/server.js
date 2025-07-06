@@ -88,7 +88,7 @@ const storage = new CloudinaryStorage({
     folder: 'gerardify-songs',
     resource_type: 'auto',
     allowed_formats: ['mp3', 'wav', 'ogg', 'flac', 'm4a', 'aac'],
-    public_id: (req, file) => `song-${Date.now()}`,
+    public_id: (req, file) => `song-${Date.now()}-${Math.random().toString(36).substring(2, 15)}`,
   },
 });
 
@@ -227,7 +227,7 @@ app.post('/api/auth/register', async (req, res) => {
 
     const token = jwt.sign(
       { userId: user._id, username: user.username },
-      'gerardify-project',
+      process.env.JWT_SECRET || 'gerardify-project',
       { expiresIn: '24h' }
     );
     
@@ -325,19 +325,30 @@ app.post('/api/songs', authenticateToken, upload.single('file'), async (req, res
       return res.status(400).json({ message: 'No file uploaded' });
     }
 
+    // Validate user ID exists
+    if (!req.user || !req.user.userId) {
+      console.log('ERROR: User ID missing from token');
+      return res.status(401).json({ message: 'Authentication failed' });
+    }
+
     console.log('Creating song with filePath:', req.file.path);
     console.log('Cloudinary public_id:', req.file.public_id);
     console.log('Cloudinary filename:', req.file.filename);
+    
+    const userObjectId = new mongoose.Types.ObjectId(req.user.userId);
 
-    const song = new Song({
+    const songData = {
       title: title.trim(),
       artist: artist.trim(),
       duration: duration.toString(),
-      userId: req.user.userId,
-      filePath: req.file.path, 
-      publicId: req.file.public_id || req.file.filename
-    });
+      userId: userObjectId,
+      filePath: req.file.path,
+      publicId: req.file.public_id || req.file.filename || `song-${Date.now()}`
+    };
 
+    console.log('Song data to save:', songData);
+
+    const song = new Song(songData);
     console.log('Song object before save:', song);
 
     const savedSong = await song.save();
@@ -357,14 +368,32 @@ app.post('/api/songs', authenticateToken, upload.single('file'), async (req, res
     res.status(201).json(responseData);
   } catch (error) {
     console.error('ERROR in song upload:', error);
-    console.error('Error details:', error.message);
+    console.error('Error name:', error.name);
+    console.error('Error message:', error.message);
     console.error('Error stack:', error.stack);
     
+    // Handle specific error types
+    if (error.name === 'ValidationError') {
+      console.error('Validation Error Details:', error.errors);
+      return res.status(400).json({ 
+        message: 'Validation failed',
+        errors: Object.values(error.errors).map(err => err.message)
+      });
+    }
+    
+    if (error.name === 'CastError') {
+      console.error('Cast Error - Invalid ObjectId:', error.value);
+      return res.status(400).json({ 
+        message: 'Invalid user ID format'
+      });
+    }
+    
     // Clean up Cloudinary file if it was uploaded
-    if (req.file && req.file.public_id) {
+    if (req.file && (req.file.public_id || req.file.filename)) {
       try {
-        await cloudinary.uploader.destroy(req.file.public_id, { resource_type: 'video' });
-        console.log('Cleaned up Cloudinary file:', req.file.public_id);
+        const publicIdToDelete = req.file.public_id || req.file.filename;
+        await cloudinary.uploader.destroy(publicIdToDelete, { resource_type: 'auto' });
+        console.log('Cleaned up Cloudinary file:', publicIdToDelete);
       } catch (cleanupError) {
         console.error('Error cleaning up Cloudinary file:', cleanupError);
       }

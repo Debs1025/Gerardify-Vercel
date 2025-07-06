@@ -31,10 +31,13 @@
   position: relative;
 }
 
-.logo-icon i {
-  color: white;
-  font-size: 18px;
-  margin-left: 2px;
+.logo-triangle {
+  width: 0;
+  height: 0;
+  border-left: 12px solid white;
+  border-top: 8px solid transparent;
+  border-bottom: 8px solid transparent;
+  margin-left: 3px;
 }
  
  .logo h1 {

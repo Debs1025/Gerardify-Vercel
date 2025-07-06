@@ -8,7 +8,7 @@ function Navbar({ user, onLogout }) {
     <nav className="sidebar">
       <Link to="/" className="logo">
         <div className="logo-icon">
-          <i className="bi bi-music-note"></i>
+          <div className="logo-triangle"></div>
         </div>
         <h1>Gerardify</h1>
       </Link>

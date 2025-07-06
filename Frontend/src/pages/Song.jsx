@@ -4,9 +4,15 @@ import axios from 'axios';
 import '../styles/pages/Song.css';
 
 // axios instance with base URL
-const api = axios.create({
-  baseURL: 'https://gerardify-vercel-backend.vercel.app/api'
-});
+const createAuthenticatedApi = () => {
+  const token = localStorage.getItem('token');
+  return axios.create({
+    baseURL: 'https://gerardify-vercel-backend.vercel.app/api',
+    headers: {
+      'Authorization': `Bearer ${token}`
+    }
+  });
+};
 
 function Song({ setCurrentSong, setIsPlaying, songs, setSongs }) {
   const location = useLocation();
@@ -31,6 +37,7 @@ function Song({ setCurrentSong, setIsPlaying, songs, setSongs }) {
 
   const handleSave = async () => {
     try {
+      const api = createAuthenticatedApi();
       const response = await api.put(`/songs/${song.id}`, {
         title: editedSong.title,
         artist: editedSong.artist
@@ -72,6 +79,7 @@ function Song({ setCurrentSong, setIsPlaying, songs, setSongs }) {
 
   const confirmDelete = async () => {
     try {
+      const api = createAuthenticatedApi();
       await api.delete(`/songs/${song.id}`);
       
       const updatedSongs = songs.filter(s => s.id !== song.id);

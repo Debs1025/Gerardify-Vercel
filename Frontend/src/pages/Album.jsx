@@ -4,9 +4,15 @@ import axios from 'axios';
 import '../styles/pages/Album.css';
 
 // axios instance with base URL
-const api = axios.create({
-  baseURL: 'https://gerardify-vercel-backend.vercel.app/api'
-});
+const createAuthenticatedApi = () => {
+  const token = localStorage.getItem('token');
+  return axios.create({
+    baseURL: 'https://gerardify-vercel-backend.vercel.app/api',
+    headers: {
+      'Authorization': `Bearer ${token}`
+    }
+  });
+};
 
 function Album({ setCurrentSong, currentSong, setIsPlaying, playlists, setPlaylists, songs }) {
   const { id } = useParams();
@@ -26,6 +32,7 @@ function Album({ setCurrentSong, currentSong, setIsPlaying, playlists, setPlayli
   useEffect(() => {
     const fetchAlbum = async () => {
       try {
+        const api = createAuthenticatedApi();
         setIsLoading(true);
         setError(null);
         if (isNaN(numericId)) {
@@ -77,6 +84,7 @@ function Album({ setCurrentSong, currentSong, setIsPlaying, playlists, setPlayli
   const handleSaveEdit = async () => {
     if (editedName.trim() && editedArtist.trim()) {
       try {
+        const api = createAuthenticatedApi();
         setError(null);
         const response = await api.put(`/playlists/${numericId}`, {
           name: editedName,
@@ -116,6 +124,7 @@ function Album({ setCurrentSong, currentSong, setIsPlaying, playlists, setPlayli
   // Confirm delete of the album
   const confirmDelete = async () => {
     try {
+      const api = createAuthenticatedApi();
       setError(null);
       await api.delete(`/playlists/${numericId}`);
       
@@ -148,6 +157,7 @@ function Album({ setCurrentSong, currentSong, setIsPlaying, playlists, setPlayli
   // Add song to the current album
   const handleAddSong = async (songToAdd) => {
     try {
+      const api = createAuthenticatedApi();
       setError(null);
       console.log('Adding song to playlist:', songToAdd);
       
@@ -179,6 +189,7 @@ function Album({ setCurrentSong, currentSong, setIsPlaying, playlists, setPlayli
   const handleRemoveSong = async (songId, e) => {
     e.stopPropagation();
     try {
+      const api = createAuthenticatedApi();
       setError(null);
       const response = await api.delete(`/playlists/${id}/songs/${songId}`);
       

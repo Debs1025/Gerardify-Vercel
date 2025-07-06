@@ -73,3 +73,27 @@
  .nav-links i {
    font-size: 24px;
  }
+
+.navbar-user {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  color: white;
+  margin-top: auto;
+  padding: 12px;
+}
+
+.logout-button {
+  background: #d51870;
+  color: white;
+  border: none;
+  padding: 0.5rem 1rem;
+  border-radius: 20px;
+  cursor: pointer;
+  font-size: 14px;
+  transition: background 0.3s;
+}
+
+.logout-button:hover {
+  background: #f01b7c;
+}

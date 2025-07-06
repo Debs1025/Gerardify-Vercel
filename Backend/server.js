@@ -5,6 +5,8 @@ const path = require('path');
 const fs = require('fs');
 const cloudinary = require('cloudinary').v2;
 const { CloudinaryStorage } = require('multer-storage-cloudinary');
+const bcrypt = require('bcryptjs');
+const jwt = require('jsonwebtoken');
 
 const app = express();
 const port = process.env.PORT || 5000;
@@ -48,11 +50,11 @@ mongoose.connect(mongoUri, {
 });
 
 mongoose.connection.on('connected', () => {
-  console.log('✅ MongoDB connected successfully');
+  console.log('MongoDB connected successfully');
 });
 
 mongoose.connection.on('error', (err) => {
-  console.error('❌ MongoDB connection error:', err);
+  console.error('MongoDB connection error:', err);
 });
 
 // Cloudinary Configuration
@@ -106,6 +108,7 @@ const songSchema = new mongoose.Schema({
   duration: { type: String, required: true },
   filePath: { type: String, required: true },
   publicId: { type: String },
+  userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true }, // Add this line
   createdAt: { type: Date, default: Date.now }
 });
 
@@ -113,10 +116,11 @@ const Song = mongoose.model('Song', songSchema);
 
 // Playlist Schema
 const playlistSchema = new mongoose.Schema({
-  id: { type: Number, required: true, unique: true },
+  id: { type: Number, required: true },
   name: { type: String, required: true },
   artist: { type: String, required: true },
   year: { type: Number, default: () => new Date().getFullYear() },
+  userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true }, // Add this line
   songs: [{
     _id: { type: mongoose.Schema.Types.ObjectId, ref: 'Song' },
     title: { type: String, required: true },
@@ -129,6 +133,34 @@ const playlistSchema = new mongoose.Schema({
 
 const Playlist = mongoose.model('Playlist', playlistSchema);
 
+// User Schema
+const userSchema = new mongoose.Schema({
+  username: { type: String, required: true, unique: true },
+  email: { type: String, required: true, unique: true },
+  password: { type: String, required: true },
+  createdAt: { type: Date, default: Date.now }
+});
+
+const User = mongoose.model('User', userSchema);
+
+// Authentication Middleware
+const authenticateToken = (req, res, next) => {
+  const authHeader = req.headers['authorization'];
+  const token = authHeader && authHeader.split(' ')[1];
+
+  if (!token) {
+    return res.status(401).json({ message: 'Access token required' });
+  }
+
+  jwt.verify(token, process.env.JWT_SECRET || 'gerardify-secret-key', (err, user) => {
+    if (err) {
+      return res.status(403).json({ message: 'Invalid or expired token' });
+    }
+    req.user = user;
+    next();
+  });
+};
+
 // Checks if the database is connected
 app.get('/api/health', (req, res) => {
   const mongoStatus = mongoose.connection.readyState === 1 ? 'connected' : 'disconnected';
@@ -140,6 +172,7 @@ app.get('/api/health', (req, res) => {
   });
 });
 
+// Checks if the server is running
 app.get('/', (req, res) => {
   res.json({ 
     message: 'Gerardify Backend API',
@@ -156,11 +189,112 @@ app.get('/', (req, res) => {
   });
 });
 
-// Routes
-app.post('/api/songs', upload.single('file'), async (req, res) => {
+//Authentication Routes
+app.post('/api/auth/register', async (req, res) => {
+  try {
+    const { username, email, password } = req.body;
+
+    // Check if user already exists
+    const existingUser = await User.findOne({ 
+      $or: [{ email }, { username }] 
+    });
+    
+    if (existingUser) {
+      return res.status(400).json({ 
+        message: 'User with this email or username already exists' 
+      });
+    }
+
+    // Hash password
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+    // Create user
+    const user = new User({
+      username,
+      email,
+      password: hashedPassword
+    });
+
+    await user.save();
+
+    // Generate JWT token
+    const token = jwt.sign(
+      { userId: user._id, username: user.username },
+      process.env.JWT_SECRET || 'gerardify-secret-key',
+      { expiresIn: '24h' }
+    );
+
+    res.status(201).json({
+      message: 'User created successfully',
+      token,
+      user: {
+        id: user._id,
+        username: user.username,
+        email: user.email
+      }
+    });
+  } catch (error) {
+    console.error('Registration error:', error);
+    res.status(500).json({ message: error.message });
+  }
+});
+
+app.post('/api/auth/login', async (req, res) => {
+  try {
+    const { email, password } = req.body;
+
+    // Find user
+    const user = await User.findOne({ email });
+    if (!user) {
+      return res.status(400).json({ message: 'Invalid credentials' });
+    }
+
+    // Check password
+    const isValidPassword = await bcrypt.compare(password, user.password);
+    if (!isValidPassword) {
+      return res.status(400).json({ message: 'Invalid credentials' });
+    }
+
+    // Generate JWT token
+    const token = jwt.sign(
+      { userId: user._id, username: user.username },
+      process.env.JWT_SECRET || 'gerardify-secret-key',
+      { expiresIn: '24h' }
+    );
+
+    res.json({
+      message: 'Login successful',
+      token,
+      user: {
+        id: user._id,
+        username: user.username,
+        email: user.email
+      }
+    });
+  } catch (error) {
+    console.error('Login error:', error);
+    res.status(500).json({ message: error.message });
+  }
+});
+
+app.get('/api/auth/me', authenticateToken, async (req, res) => {
+  try {
+    const user = await User.findById(req.user.userId).select('-password');
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+    res.json(user);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
+// Song Routes
+app.post('/api/songs', authenticateToken, upload.single('file'), async (req, res) => {
   try {
     console.log('=== Song Upload Debug ===');
     console.log('Received request from origin:', req.headers.origin);
+    console.log('User ID:', req.user.userId);
     console.log('Request body:', req.body);
     console.log('File info:', req.file ? {
       filename: req.file.filename,
@@ -176,7 +310,6 @@ app.post('/api/songs', upload.single('file'), async (req, res) => {
       return res.status(400).json({ message: 'No file uploaded' });
     }
 
-    // Increased file size limit to 50MB
     if (req.file.size > 50 * 1024 * 1024) {
       console.log('ERROR: File too large:', req.file.size);
       return res.status(413).json({ 
@@ -191,7 +324,8 @@ app.post('/api/songs', upload.single('file'), async (req, res) => {
       artist,
       duration,
       filePath: req.file.path,      
-      publicId: req.file.filename     
+      publicId: req.file.filename,
+      userId: req.user.userId // Add user ID
     });
 
     const savedSong = await song.save();
@@ -205,13 +339,13 @@ app.post('/api/songs', upload.single('file'), async (req, res) => {
 });
 
 // get song by ID
-app.put('/api/songs/:id', async (req, res) => {
+app.put('/api/songs/:id', authenticateToken, async (req, res) => {
   try {
     const { id } = req.params;
     const { title, artist } = req.body;
 
-    const song = await Song.findByIdAndUpdate(
-      id,
+    const song = await Song.findOneAndUpdate(
+      { _id: id, userId: req.user.userId }, // Only update user's songs
       { title, artist },
       { new: true }
     );
@@ -227,10 +361,10 @@ app.put('/api/songs/:id', async (req, res) => {
 });
 
 // Delete song by ID
-app.delete('/api/songs/:id', async (req, res) => {
+app.delete('/api/songs/:id', authenticateToken, async (req, res) => {
   try {
     const { id } = req.params;
-    const song = await Song.findById(id);
+    const song = await Song.findOne({ _id: id, userId: req.user.userId });
 
     if (!song) {
       return res.status(404).json({ message: 'Song not found' });
@@ -245,15 +379,6 @@ app.delete('/api/songs/:id', async (req, res) => {
       }
     }
 
-    // Delete local file if in development
-    if (process.env.NODE_ENV !== 'production' && !song.filePath.startsWith('data:')) {
-      const filePath = path.join(__dirname, song.filePath);
-      if (fs.existsSync(filePath)) {
-        fs.unlinkSync(filePath);
-      }
-    }
-
-    // Delete the song from the database
     await Song.findByIdAndDelete(id);
     res.json({ message: 'Song deleted successfully' });
   } catch (error) {
@@ -261,9 +386,10 @@ app.delete('/api/songs/:id', async (req, res) => {
   }
 });
 
-app.get('/api/songs', async (req, res) => {
+// Get all songs of the user
+app.get('/api/songs', authenticateToken, async (req, res) => {
   try {
-    const songs = await Song.find().sort({ createdAt: -1 });
+    const songs = await Song.find({ userId: req.user.userId }).sort({ createdAt: -1 });
     res.json(songs);
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -271,7 +397,7 @@ app.get('/api/songs', async (req, res) => {
 });
 
 // Playlist Routes
-app.post('/api/playlists', async (req, res) => {
+app.post('/api/playlists', authenticateToken, async (req, res) => {
   try {
     const { name, artist } = req.body;
     console.log('Creating playlist with data:', { name, artist });
@@ -283,7 +409,8 @@ app.post('/api/playlists', async (req, res) => {
       id: playlistId,
       name,
       artist,
-      songs: []
+      songs: [],
+      userId: req.user.userId 
     });
     
     console.log('New playlist object:', playlist);
@@ -297,10 +424,10 @@ app.post('/api/playlists', async (req, res) => {
   }
 });
 
-app.get('/api/playlists', async (req, res) => {
+app.get('/api/playlists', authenticateToken, async (req, res) => {
   try {
-    console.log('Fetching all playlists');
-    const playlists = await Playlist.find().populate('songs');
+    console.log('Fetching playlists for user:', req.user.userId);
+    const playlists = await Playlist.find({ userId: req.user.userId }).populate('songs');
     console.log('Found playlists:', playlists);
     res.json(playlists);
   } catch (error) {
@@ -309,19 +436,20 @@ app.get('/api/playlists', async (req, res) => {
   }
 });
 
-app.get('/api/playlists/:id', async (req, res) => {
+app.get('/api/playlists/:id', authenticateToken, async (req, res) => {
   try {
     const { id } = req.params;
     console.log('Fetching playlist with ID:', id);
     
-    // Ensure id is parsed as a number
     const numericId = parseInt(id);
     if (isNaN(numericId)) {
       return res.status(400).json({ message: 'Invalid playlist ID format' });
     }
 
-    const playlist = await Playlist.findOne({ id: numericId }).populate('songs');
-    console.log('Found playlist:', playlist);
+    const playlist = await Playlist.findOne({ 
+      id: numericId, 
+      userId: req.user.userId 
+    }).populate('songs');
     
     if (!playlist) {
       return res.status(404).json({ message: 'Playlist not found' });
@@ -334,13 +462,13 @@ app.get('/api/playlists/:id', async (req, res) => {
   }
 });
 
-app.put('/api/playlists/:id', async (req, res) => {
+app.put('/api/playlists/:id', authenticateToken, async (req, res) => {
   try {
     const { id } = req.params;
     const { name, artist } = req.body;
 
     const playlist = await Playlist.findOneAndUpdate(
-      { id: parseInt(id) },
+      { id: parseInt(id), userId: req.user.userId },
       { name, artist },
       { new: true }
     ).populate('songs');
@@ -355,10 +483,13 @@ app.put('/api/playlists/:id', async (req, res) => {
   }
 });
 
-app.delete('/api/playlists/:id', async (req, res) => {
+app.delete('/api/playlists/:id', authenticateToken, async (req, res) => {
   try {
     const { id } = req.params;
-    const playlist = await Playlist.findOneAndDelete({ id: parseInt(id) });
+    const playlist = await Playlist.findOneAndDelete({ 
+      id: parseInt(id), 
+      userId: req.user.userId 
+    });
     
     if (!playlist) {
       return res.status(404).json({ message: 'Playlist not found' });
@@ -371,29 +502,33 @@ app.delete('/api/playlists/:id', async (req, res) => {
 });
 
 // Add or update songs in a playlist
-app.post('/api/playlists/:id/songs', async (req, res) => {
+app.post('/api/playlists/:id/songs', authenticateToken, async (req, res) => {
   try {
     const { id } = req.params;
     const { songId } = req.body;
-    console.log('Adding song to playlist:', { playlistId: id, songId });
 
-    const playlist = await Playlist.findOne({ id: parseInt(id) });
+    const playlist = await Playlist.findOne({ 
+      id: parseInt(id), 
+      userId: req.user.userId 
+    });
+    
     if (!playlist) {
       return res.status(404).json({ message: 'Playlist not found' });
     }
 
-    // Check if song exists
-    const song = await Song.findById(songId);
+    const song = await Song.findOne({ 
+      _id: songId, 
+      userId: req.user.userId 
+    });
+    
     if (!song) {
       return res.status(404).json({ message: 'Song not found' });
     }
 
-    // Check if song is already in playlist
     if (playlist.songs.some(s => s._id.toString() === songId)) {
       return res.status(400).json({ message: 'Song already in playlist' });
     }
 
-    // Add song to playlist with full song data
     playlist.songs.push({
       _id: song._id,
       title: song.title,
@@ -403,11 +538,7 @@ app.post('/api/playlists/:id/songs', async (req, res) => {
     });
     
     await playlist.save();
-
-    // Get updated playlist
     const updatedPlaylist = await Playlist.findOne({ id: parseInt(id) });
-    console.log('Updated playlist:', updatedPlaylist);
-    
     res.json(updatedPlaylist);
   } catch (error) {
     console.error('Error adding song to playlist:', error);
@@ -415,11 +546,15 @@ app.post('/api/playlists/:id/songs', async (req, res) => {
   }
 });
 
-app.delete('/api/playlists/:id/songs/:songId', async (req, res) => {
+app.delete('/api/playlists/:id/songs/:songId', authenticateToken, async (req, res) => {
   try {
     const { id, songId } = req.params;
 
-    const playlist = await Playlist.findOne({ id: parseInt(id) });
+    const playlist = await Playlist.findOne({ 
+      id: parseInt(id), 
+      userId: req.user.userId 
+    });
+    
     if (!playlist) {
       return res.status(404).json({ message: 'Playlist not found' });
     }
@@ -427,7 +562,7 @@ app.delete('/api/playlists/:id/songs/:songId', async (req, res) => {
     playlist.songs = playlist.songs.filter(song => song._id.toString() !== songId);
     await playlist.save();
 
-    const updatedPlaylist = await Playlist.findOne({ id: parseInt(id) }).populate('songs');
+    const updatedPlaylist = await Playlist.findOne({ id: parseInt(id) });
     res.json(updatedPlaylist);
   } catch (error) {
     res.status(500).json({ message: error.message });

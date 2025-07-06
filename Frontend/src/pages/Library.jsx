@@ -3,11 +3,16 @@ import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import '../styles/pages/Library.css';
 
-
-// Create axios instance with base URL
-const api = axios.create({
-  baseURL: 'https://gerardify-vercel-backend.vercel.app/api' 
-});
+// Create an authenticated API
+const createAuthenticatedApi = () => {
+  const token = localStorage.getItem('token');
+  return axios.create({
+    baseURL: 'https://gerardify-vercel-backend.vercel.app/api',
+    headers: {
+      'Authorization': `Bearer ${token}`
+    }
+  });
+};
 
 function Library({ setCurrentSong, playlists, setPlaylists, setCurrentPlaylist, setIsPlaying, songs, setSongs }) {  
   const navigate = useNavigate();
@@ -25,6 +30,7 @@ function Library({ setCurrentSong, playlists, setPlaylists, setCurrentPlaylist, 
     e.preventDefault();
     if (newPlaylistName.trim()) {
       try {
+        const api = createAuthenticatedApi();
         const response = await api.post('/playlists', {
           name: newPlaylistName,
           artist: 'Your Playlist'
@@ -44,8 +50,8 @@ function Library({ setCurrentSong, playlists, setPlaylists, setCurrentPlaylist, 
 const handleFileSelect = (e) => {
   const file = e.target.files[0];
   if (file) {
-    if (file.size > 6 * 1024 * 1024) {
-      alert('File is too large. Please select a file smaller than 6MB.');
+    if (file.size > 50 * 1024 * 1024) {
+      alert('File is too large. Please select a file smaller than 50MB.');
       return;
     }
       
@@ -98,7 +104,8 @@ const compressAudio = (file) => {
         formData.append('artist', newSongData.artist);
         formData.append('duration', formattedDuration);
 
-        // Upload to backend using axios
+        // Upload to backend using authenticated API
+        const api = createAuthenticatedApi();
         api.post('/songs', formData, {
           headers: {
             'Content-Type': 'multipart/form-data'
@@ -116,7 +123,7 @@ const compressAudio = (file) => {
 
           setSongs(prevSongs => [...prevSongs, newSong]);
           setCurrentPlaylist([...songs, newSong]);
-          alert('Song uploaded successfully!'); // ✅ Success message
+          alert('Song uploaded successfully!');
         })
         .catch(error => {
           console.error('Upload error details:', error.response?.data || error.message);
@@ -139,6 +146,8 @@ const compressAudio = (file) => {
   };
 
   useEffect(() => {
+    const api = createAuthenticatedApi();
+    
     // Fetch songs
     api.get('/songs')
       .then(response => {

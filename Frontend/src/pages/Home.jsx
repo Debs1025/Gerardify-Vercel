@@ -3,10 +3,16 @@ import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import '../styles/pages/Home.css';
 
-// Create axios instance with base URL
-const api = axios.create({
-  baseURL: 'https://gerardify-vercel-backend.vercel.app/api'
-});
+// Create axios instance with backend URL and authentication token
+const createAuthenticatedApi = () => {
+  const token = localStorage.getItem('token');
+  return axios.create({
+    baseURL: 'https://gerardify-vercel-backend.vercel.app/api',
+    headers: {
+      'Authorization': `Bearer ${token}`
+    }
+  });
+};
 
 function Home() {
   const navigate = useNavigate();
@@ -17,6 +23,7 @@ function Home() {
   useEffect(() => {
     const fetchPlaylists = async () => {
       try {
+        const api = createAuthenticatedApi();
         setIsLoading(true);
         setError(null);
         const response = await api.get('/playlists');

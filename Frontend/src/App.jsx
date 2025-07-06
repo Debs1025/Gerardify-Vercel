@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import './styles/App.css'
 import { BrowserRouter, Routes, Route } from 'react-router-dom'
 import 'bootstrap/dist/css/bootstrap.min.css'
@@ -9,6 +9,7 @@ import Library from './pages/Library'
 import MusicPlayer from './components/MusicPlayer'
 import Album from './pages/Album'
 import Song from './pages/Song'
+import Login from './authentication/Login';
 
 function App() {
   const [currentSong, setCurrentSong] = useState(null);
@@ -16,12 +17,47 @@ function App() {
   const [playlists, setPlaylists] = useState([]);
   const [currentPlaylist, setCurrentPlaylist] = useState([]); 
   const [songs, setSongs] = useState([]);
+  const [user, setUser] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const token = localStorage.getItem('token');
+    const savedUser = localStorage.getItem('user');
+    
+    if (token && savedUser) {
+      setUser(JSON.parse(savedUser));
+    }
+    setLoading(false);
+  }, []);
+
+  const handleLogin = (userData) => {
+    setUser(userData);
+  };
+
+  const handleLogout = () => {
+    localStorage.removeItem('token');
+    localStorage.removeItem('user');
+    setUser(null);
+    setCurrentSong(null);
+    setIsPlaying(false);
+    setPlaylists([]);
+    setCurrentPlaylist([]);
+    setSongs([]);
+  };
+
+  if (loading) {
+    return <div className="loading">Loading...</div>;
+  }
+
+  if (!user) {
+    return <Login onLogin={handleLogin} />;
+  }
 
   return (
     <div className="app-container">
       <BrowserRouter>
         <div className="main-content">
-          <Navbar/>
+          <Navbar user={user} onLogout={handleLogout} />
           <div className="content-area">
             <Routes>
               <Route path="/" element={<Home playlists={playlists} />} />
@@ -44,6 +80,7 @@ function App() {
                   setIsPlaying={setIsPlaying}
                   playlists={playlists}
                   setPlaylists={setPlaylists}
+                  setCurrentPlaylist={setCurrentPlaylist} 
                   songs={songs}
                 />
               } />
@@ -70,4 +107,4 @@ function App() {
   );
 }
 
-export default App
+export default App;

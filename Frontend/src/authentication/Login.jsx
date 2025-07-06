@@ -15,6 +15,7 @@ function Login({ onLogin }) {
   });
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [successMessage, setSuccessMessage] = useState('');
 
   const handleChange = (e) => {
     setFormData({
@@ -27,15 +28,33 @@ function Login({ onLogin }) {
     e.preventDefault();
     setLoading(true);
     setError('');
+    setSuccessMessage('');
 
     try {
-      const endpoint = isLogin ? '/auth/login' : '/auth/register';
-      const response = await api.post(endpoint, formData);
-      
-      localStorage.setItem('token', response.data.token);
-      localStorage.setItem('user', JSON.stringify(response.data.user));
-      
-      onLogin(response.data.user);
+      if (isLogin) {
+        // Login flow
+        const response = await api.post('/auth/login', {
+          email: formData.email,
+          password: formData.password
+        });
+        
+        localStorage.setItem('token', response.data.token);
+        localStorage.setItem('user', JSON.stringify(response.data.user));
+        
+        onLogin(response.data.user);
+      } else {
+        // Registration flow
+        const response = await api.post('/auth/register', formData);
+        
+        // Show success message and switch to login
+        setSuccessMessage('Account created successfully! Please login with your credentials.');
+        setIsLogin(true);
+        setFormData({
+          username: '',
+          email: formData.email, // Keep email for convenience
+          password: ''
+        });
+      }
     } catch (error) {
       setError(error.response?.data?.message || 'An error occurred');
     } finally {
@@ -43,10 +62,35 @@ function Login({ onLogin }) {
     }
   };
 
+  const toggleMode = () => {
+    setIsLogin(!isLogin);
+    setError('');
+    setSuccessMessage('');
+    setFormData({
+      username: '',
+      email: '',
+      password: ''
+    });
+  };
+
   return (
     <div className="login-container">
       <div className="login-card">
-        <h2>{isLogin ? 'Login to Gerardify' : 'Sign Up for Gerardify'}</h2>
+        <div className="logo-section">
+          <div className="logo-icon">
+            <i className="bi bi-music-note"></i>
+          </div>
+          <h1>Gerardify</h1>
+        </div>
+        
+        <h2>{isLogin ? 'Welcome Back' : 'Create Account'}</h2>
+        
+        {successMessage && (
+          <div className="success-message">
+            {successMessage}
+          </div>
+        )}
+        
         <form onSubmit={handleSubmit}>
           {!isLogin && (
             <div className="form-group">
@@ -74,22 +118,23 @@ function Login({ onLogin }) {
             <input
               type="password"
               name="password"
-              placeholder="Password"
+              placeholder="Password (use a strong password)"
               value={formData.password}
               onChange={handleChange}
               required
+              minLength="8"
             />
           </div>
           {error && <p className="error-message">{error}</p>}
           <button type="submit" disabled={loading}>
-            {loading ? 'Loading...' : (isLogin ? 'Login' : 'Sign Up')}
+            {loading ? 'Loading...' : (isLogin ? 'Login' : 'Create Account')}
           </button>
         </form>
         <p>
           {isLogin ? "Don't have an account? " : "Already have an account? "}
           <button 
             type="button" 
-            onClick={() => setIsLogin(!isLogin)}
+            onClick={toggleMode}
             className="toggle-button"
           >
             {isLogin ? 'Sign Up' : 'Login'}

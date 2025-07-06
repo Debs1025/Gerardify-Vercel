@@ -5,18 +5,42 @@ function Navbar({ user, onLogout }) {
   const location = useLocation()
 
   return (
-    <nav className="navbar">
-      <div className="navbar-brand">
-        <Link to="/">Gerardify</Link>
-      </div>
-      <div className="navbar-links">
-        <Link to="/">Home</Link>
-        <Link to="/search">Search</Link>
-        <Link to="/library">Library</Link>
-      </div>
+    <nav className="sidebar">
+      <Link to="/" className="logo">
+        <div className="logo-icon">
+          <i className="bi bi-music-note"></i>
+        </div>
+        <h1>Gerardify</h1>
+      </Link>
+      
+      <ul className="nav-links">
+        <li className={location.pathname === '/' ? 'active' : ''}>
+          <Link to="/">
+            <i className="bi bi-house"></i>
+            Home
+          </Link>
+        </li>
+        <li className={location.pathname === '/search' ? 'active' : ''}>
+          <Link to="/search">
+            <i className="bi bi-search"></i>
+            Search
+          </Link>
+        </li>
+        <li className={location.pathname === '/library' ? 'active' : ''}>
+          <Link to="/library">
+            <i className="bi bi-collection"></i>
+            Your Library
+          </Link>
+        </li>
+      </ul>
+      
       <div className="navbar-user">
-        <span>Welcome, {user?.username}!</span>
+        <div className="user-info">
+          <span>Welcome back,</span>
+          <strong>{user?.username}!</strong>
+        </div>
         <button onClick={onLogout} className="logout-button">
+          <i className="bi bi-box-arrow-right"></i>
           Logout
         </button>
       </div>

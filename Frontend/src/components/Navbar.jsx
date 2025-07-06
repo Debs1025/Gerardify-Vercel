@@ -34,15 +34,20 @@ function Navbar({ user, onLogout }) {
         </li>
       </ul>
       
+      {/* Logout button right below Your Library */}
+      <div className="logout-section">
+        <button onClick={onLogout} className="logout-button">
+          <i className="bi bi-box-arrow-right"></i>
+          Logout
+        </button>
+      </div>
+      
+      {/* User info at the bottom */}
       <div className="navbar-user">
         <div className="user-info">
           <span>Welcome back,</span>
           <strong>{user?.username}!</strong>
         </div>
-        <button onClick={onLogout} className="logout-button">
-          <i className="bi bi-box-arrow-right"></i>
-          Logout
-        </button>
       </div>
     </nav>
   )

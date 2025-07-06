@@ -47,39 +47,39 @@ function Library({ setCurrentSong, playlists, setPlaylists, setCurrentPlaylist, 
     }
   };
 
-const handleFileSelect = (e) => {
-  const file = e.target.files[0];
-  if (file) {
-    if (file.size > 50 * 1024 * 1024) {
-      alert('File is too large. Please select a file smaller than 50MB.');
-      return;
+  const handleFileSelect = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      if (file.size > 50 * 1024 * 1024) {
+        alert('File is too large. Please select a file smaller than 50MB.');
+        return;
+      }
+        
+      const url = URL.createObjectURL(file);
+      setNewSongData({
+        ...newSongData,
+        file: file,
+        tempUrl: url,
+        title: file.name.replace(/\.[^/.]+$/, "")
+      });
+      setShowSongForm(true);
     }
-      
-    const url = URL.createObjectURL(file);
-    setNewSongData({
-      ...newSongData,
-      file: file,
-      tempUrl: url,
-      title: file.name.replace(/\.[^/.]+$/, "")
-    });
-    setShowSongForm(true);
-  }
-};
+  };
 
-const compressAudio = (file) => {
-  return new Promise((resolve) => {
-    const audio = new Audio(URL.createObjectURL(file));
-    
-    audio.addEventListener('loadedmetadata', () => {
-      resolve(file);
+  const compressAudio = (file) => {
+    return new Promise((resolve) => {
+      const audio = new Audio(URL.createObjectURL(file));
+      
+      audio.addEventListener('loadedmetadata', () => {
+        resolve(file);
+      });
+      
+      audio.addEventListener('error', () => {
+        alert('Error loading audio file. Please try a different file.');
+        resolve(null);
+      });
     });
-    
-    audio.addEventListener('error', () => {
-      alert('Error loading audio file. Please try a different file.');
-      resolve(null);
-    });
-  });
-};
+  };
 
   const handleSongFormSubmit = async (e) => {
     e.preventDefault();
@@ -113,17 +113,22 @@ const compressAudio = (file) => {
         })
         .then(response => {
           const data = response.data;
+          console.log('Song upload response:', data);
+          
           const newSong = {
             id: data._id,
             title: data.title,
             artist: data.artist,
             duration: data.duration,
-            url: data.filePath 
+            url: data.filePath // This is the Cloudinary URL
           };
 
+          // Update songs state
           setSongs(prevSongs => [...prevSongs, newSong]);
-          setCurrentPlaylist([...songs, newSong]);
+          setCurrentPlaylist(prevPlaylist => [...prevPlaylist, newSong]);
+          
           alert('Song uploaded successfully!');
+          console.log('New song added:', newSong);
         })
         .catch(error => {
           console.error('Upload error details:', error.response?.data || error.message);
@@ -135,7 +140,7 @@ const compressAudio = (file) => {
       });
     });
 
-    // Reset the song to add new song
+    // Reset the song form
     setNewSongData({
       title: '',
       artist: '',
@@ -151,14 +156,16 @@ const compressAudio = (file) => {
     // Fetch songs
     api.get('/songs')
       .then(response => {
+        console.log('Fetched songs from API:', response.data);
         const formattedSongs = response.data.map(song => ({
           id: song._id,
           title: song.title,
           artist: song.artist,
           duration: song.duration,
-          url: song.filePath
+          url: song.filePath // This is the Cloudinary URL
         }));
         setSongs(formattedSongs);
+        console.log('Formatted songs:', formattedSongs);
       })
       .catch(error => {
         console.error('Error fetching songs:', error);
@@ -172,7 +179,7 @@ const compressAudio = (file) => {
       .catch(error => {
         console.error('Error fetching playlists:', error);
       });
-  }, []);
+  }, [setSongs, setPlaylists]);
 
   const handlePlaylistClick = (playlist) => {
     navigate(`/album/${playlist.id}`);
@@ -183,17 +190,18 @@ const compressAudio = (file) => {
   };
 
   const handlePlayClick = (e, song) => {
-  e.stopPropagation(); 
-  setCurrentSong({
-    id: song.id,
-    title: song.title,
-    artist: song.artist,
-    url: song.url, 
-    src: song.url  
-  });
-  setCurrentPlaylist(songs);
-  setIsPlaying(true);
-};
+    e.stopPropagation(); 
+    console.log('Playing song:', song);
+    setCurrentSong({
+      id: song.id,
+      title: song.title,
+      artist: song.artist,
+      duration: song.duration,
+      url: song.url // This should be the Cloudinary URL
+    });
+    setCurrentPlaylist(songs);
+    setIsPlaying(true);
+  };
   
   return (
     <div className="library-container">

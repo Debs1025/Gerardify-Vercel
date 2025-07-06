@@ -297,7 +297,6 @@ app.get('/api/auth/me', authenticateToken, async (req, res) => {
 });
 
 // Song Routes
-// Song Routes
 app.post('/api/songs', authenticateToken, upload.single('file'), async (req, res) => {
   try {
     console.log('=== Song Upload Debug ===');
@@ -314,7 +313,6 @@ app.post('/api/songs', authenticateToken, upload.single('file'), async (req, res
 
     const { title, artist, duration } = req.body;
 
-    // Add validation for required fields
     if (!title || !artist || !duration) {
       console.log('ERROR: Missing required fields');
       return res.status(400).json({ 
@@ -327,38 +325,46 @@ app.post('/api/songs', authenticateToken, upload.single('file'), async (req, res
       return res.status(400).json({ message: 'No file uploaded' });
     }
 
-    // Increased file size limit to 50MB
-    if (req.file.size > 50 * 1024 * 1024) {
-      console.log('ERROR: File too large:', req.file.size);
-      return res.status(413).json({ 
-        message: 'File too large. Please use a file smaller than 50MB.' 
-      });
-    }
-
     console.log('Creating song with filePath:', req.file.path);
+    console.log('Cloudinary public_id:', req.file.public_id);
+    console.log('Cloudinary filename:', req.file.filename);
 
     const song = new Song({
       title: title.trim(),
       artist: artist.trim(),
-      duration,
+      duration: duration.toString(),
       userId: req.user.userId,
-      filePath: req.file.path,
+      filePath: req.file.path, 
       publicId: req.file.public_id || req.file.filename
     });
+
+    console.log('Song object before save:', song);
 
     const savedSong = await song.save();
     console.log('Song saved successfully:', savedSong);
     
-    res.status(201).json(savedSong);
+    const responseData = {
+      _id: savedSong._id,
+      title: savedSong.title,
+      artist: savedSong.artist,
+      duration: savedSong.duration,
+      filePath: savedSong.filePath,
+      publicId: savedSong.publicId,
+      userId: savedSong.userId,
+      createdAt: savedSong.createdAt
+    };
+    
+    res.status(201).json(responseData);
   } catch (error) {
     console.error('ERROR in song upload:', error);
+    console.error('Error details:', error.message);
+    console.error('Error stack:', error.stack);
     
     // Clean up Cloudinary file if it was uploaded
-    if (req.file && (req.file.public_id || req.file.filename)) {
+    if (req.file && req.file.public_id) {
       try {
-        const publicIdToDelete = req.file.public_id || req.file.filename;
-        await cloudinary.uploader.destroy(publicIdToDelete, { resource_type: 'video' });
-        console.log('Cleaned up Cloudinary file:', publicIdToDelete);
+        await cloudinary.uploader.destroy(req.file.public_id, { resource_type: 'video' });
+        console.log('Cleaned up Cloudinary file:', req.file.public_id);
       } catch (cleanupError) {
         console.error('Error cleaning up Cloudinary file:', cleanupError);
       }

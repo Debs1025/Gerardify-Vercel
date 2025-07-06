@@ -297,6 +297,7 @@ app.get('/api/auth/me', authenticateToken, async (req, res) => {
 });
 
 // Song Routes
+// Song Routes
 app.post('/api/songs', authenticateToken, upload.single('file'), async (req, res) => {
   try {
     console.log('=== Song Upload Debug ===');
@@ -307,10 +308,19 @@ app.post('/api/songs', authenticateToken, upload.single('file'), async (req, res
       filename: req.file.filename,
       path: req.file.path,
       size: req.file.size,
-      mimetype: req.file.mimetype
+      mimetype: req.file.mimetype,
+      public_id: req.file.public_id
     } : 'No file');
 
     const { title, artist, duration } = req.body;
+
+    // Add validation for required fields
+    if (!title || !artist || !duration) {
+      console.log('ERROR: Missing required fields');
+      return res.status(400).json({ 
+        message: 'Missing required fields: title, artist, and duration are required' 
+      });
+    }
 
     if (!req.file) {
       console.log('ERROR: No file uploaded');
@@ -328,12 +338,12 @@ app.post('/api/songs', authenticateToken, upload.single('file'), async (req, res
     console.log('Creating song with filePath:', req.file.path);
 
     const song = new Song({
-      title,
-      artist,
+      title: title.trim(),
+      artist: artist.trim(),
       duration,
       userId: req.user.userId,
       filePath: req.file.path,
-      publicId: req.file.filename
+      publicId: req.file.public_id || req.file.filename
     });
 
     const savedSong = await song.save();
@@ -343,10 +353,12 @@ app.post('/api/songs', authenticateToken, upload.single('file'), async (req, res
   } catch (error) {
     console.error('ERROR in song upload:', error);
     
-    if (req.file && req.file.public_id) {
+    // Clean up Cloudinary file if it was uploaded
+    if (req.file && (req.file.public_id || req.file.filename)) {
       try {
-        await cloudinary.uploader.destroy(req.file.public_id, { resource_type: 'video' });
-        console.log('Cleaned up Cloudinary file:', req.file.public_id);
+        const publicIdToDelete = req.file.public_id || req.file.filename;
+        await cloudinary.uploader.destroy(publicIdToDelete, { resource_type: 'video' });
+        console.log('Cleaned up Cloudinary file:', publicIdToDelete);
       } catch (cleanupError) {
         console.error('Error cleaning up Cloudinary file:', cleanupError);
       }

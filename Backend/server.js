@@ -102,13 +102,33 @@ const upload = multer({
 
 // Song Schema
 const songSchema = new mongoose.Schema({
-  title: { type: String, required: true },
-  artist: { type: String, required: true },
-  duration: { type: String, required: true },
-  filePath: { type: String, required: true },
-  publicId: { type: String },
-  userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true }, // Add this line
-  createdAt: { type: Date, default: Date.now }
+  title: { 
+    type: String, 
+    required: true,
+    trim: true
+  },
+  artist: { 
+    type: String, 
+    required: true,
+    trim: true
+  },
+  duration: { 
+    type: String, 
+    required: true
+  },
+  filePath: { 
+    type: String, 
+    required: true
+  },
+  publicId: String,
+  userId: { 
+    type: String,  
+    required: true
+  },
+  createdAt: { 
+    type: Date, 
+    default: Date.now 
+  }
 });
 
 const Song = mongoose.model('Song', songSchema);
@@ -119,9 +139,9 @@ const playlistSchema = new mongoose.Schema({
   name: { type: String, required: true },
   artist: { type: String, required: true },
   year: { type: Number, default: () => new Date().getFullYear() },
-  userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true }, // Add this line
+  userId: { type: String, required: true }, 
   songs: [{
-    _id: { type: mongoose.Schema.Types.ObjectId, ref: 'Song' },
+    _id: { type: String }, 
     title: { type: String, required: true },
     artist: { type: String, required: true },
     duration: { type: String, required: true },
@@ -298,160 +318,100 @@ app.get('/api/auth/me', authenticateToken, async (req, res) => {
 
 // Song Routes
 app.post('/api/songs', authenticateToken, upload.single('file'), async (req, res) => {
+  console.log('Starting song upload...');
+  
   try {
-    console.log('=== Song Upload Debug ===');
-    console.log('Received request from origin:', req.headers.origin);
-    console.log('User ID:', req.user.userId);
-    console.log('Request body:', req.body);
-    console.log('File info:', req.file ? {
-      filename: req.file.filename,
-      path: req.file.path,
-      size: req.file.size,
-      mimetype: req.file.mimetype,
-      public_id: req.file.public_id
-    } : 'No file');
-
     const { title, artist, duration } = req.body;
+    
+    console.log('Request data:', { title, artist, duration });
+    console.log('User:', req.user);
+    console.log('File:', req.file ? { name: req.file.filename, size: req.file.size, public_id: req.file.public_id } : 'No file');
 
-    if (!title || !artist || !duration) {
-      console.log('ERROR: Missing required fields');
+    // Validate required fields
+    if (!title?.trim() || !artist?.trim() || !duration?.trim()) {
+      console.log('Missing required fields');
       return res.status(400).json({ 
-        message: 'Missing required fields: title, artist, and duration are required' 
+        success: false,
+        message: 'Title, artist, and duration are required' 
       });
     }
 
     if (!req.file) {
-      console.log('ERROR: No file uploaded');
-      return res.status(400).json({ message: 'No file uploaded' });
+      console.log('No file uploaded');
+      return res.status(400).json({ 
+        success: false,
+        message: 'Audio file is required' 
+      });
     }
 
-    // Validate user ID exists
-    if (!req.user || !req.user.userId) {
-      console.log('ERROR: User ID missing from token');
-      return res.status(401).json({ message: 'Authentication failed' });
-    }
-
-    // Validate ObjectId format BEFORE creating ObjectId
-    if (!mongoose.Types.ObjectId.isValid(req.user.userId)) {
-      console.log('ERROR: Invalid user ID format:', req.user.userId);
-      return res.status(400).json({ message: 'Invalid user ID format' });
-    }
-
-    console.log('Creating song with filePath:', req.file.path);
-    console.log('Cloudinary public_id:', req.file.public_id);
-    console.log('Cloudinary filename:', req.file.filename);
-
-    // Safely create ObjectId with try-catch
-    let userObjectId;
-    try {
-      userObjectId = new mongoose.Types.ObjectId(req.user.userId);
-      console.log('Successfully created ObjectId:', userObjectId);
-    } catch (objectIdError) {
-      console.log('ERROR: Failed to create ObjectId:', objectIdError);
-      return res.status(400).json({ message: 'Invalid user ID format' });
+    if (!req.user?.userId) {
+      console.log('No user ID in token');
+      return res.status(401).json({ 
+        success: false,
+        message: 'User authentication failed' 
+      });
     }
 
     const songData = {
       title: title.trim(),
       artist: artist.trim(),
       duration: duration.toString(),
-      userId: userObjectId,
       filePath: req.file.path,
-      publicId: req.file.public_id || req.file.filename || `song-${Date.now()}`
+      publicId: req.file.public_id || req.file.filename,
+      userId: req.user.userId 
     };
 
-    console.log('Song data to save:', songData);
+    console.log('Creating song with data:', songData);
 
-    // Validate the song data before creating the document
-    if (!songData.title || !songData.artist || !songData.duration || !songData.filePath) {
-      console.log('ERROR: Invalid song data');
-      return res.status(400).json({ message: 'Invalid song data' });
-    }
-
+    // Save to database
     const song = new Song(songData);
-    console.log('Song object before save:', song);
-
-    // Validate the document before saving
-    const validationError = song.validateSync();
-    if (validationError) {
-      console.log('ERROR: Validation failed:', validationError);
-      return res.status(400).json({ 
-        message: 'Validation failed',
-        errors: Object.values(validationError.errors).map(err => err.message)
-      });
-    }
-
     const savedSong = await song.save();
-    console.log('Song saved successfully:', savedSong);
+    console.log('Song saved successfully:', savedSong._id);
     
-    const responseData = {
-      _id: savedSong._id,
-      title: savedSong.title,
-      artist: savedSong.artist,
-      duration: savedSong.duration,
-      filePath: savedSong.filePath,
-      publicId: savedSong.publicId,
-      userId: savedSong.userId,
-      createdAt: savedSong.createdAt
-    };
-    
-    res.status(201).json(responseData);
-  } catch (error) {
-    console.error('ERROR in song upload:', error);
-    console.error('Error name:', error.name);
-    console.error('Error message:', error.message);
-    console.error('Error stack:', error.stack);
-    
-    // Handle specific error types
-    if (error.name === 'ValidationError') {
-      console.error('Validation Error Details:', error.errors);
-      return res.status(400).json({ 
-        message: 'Validation failed',
-        errors: Object.values(error.errors).map(err => err.message)
-      });
-    }
-    
-    if (error.name === 'CastError') {
-      console.error('Cast Error - Invalid ObjectId:', error.value);
-      return res.status(400).json({ 
-        message: 'Invalid user ID format'
-      });
-    }
+    // Return success response
+    res.status(201).json({
+      success: true,
+      message: 'Song uploaded successfully',
+      song: {
+        _id: savedSong._id,
+        title: savedSong.title,
+        artist: savedSong.artist,
+        duration: savedSong.duration,
+        filePath: savedSong.filePath,
+        publicId: savedSong.publicId,
+        userId: savedSong.userId,
+        createdAt: savedSong.createdAt
+      }
+    });
 
-    if (error.name === 'MongoError' || error.name === 'MongoNetworkError') {
-      console.error('MongoDB Error:', error);
-      return res.status(503).json({ 
-        message: 'Database connection error'
-      });
-    }
-    
-    // Clean up Cloudinary file if it was uploaded
-    if (req.file && (req.file.public_id || req.file.filename)) {
+  } catch (error) {
+    console.error('Upload failed:', error);
+
+    if (req.file?.public_id) {
       try {
-        const publicIdToDelete = req.file.public_id || req.file.filename;
-        await cloudinary.uploader.destroy(publicIdToDelete, { resource_type: 'auto' });
-        console.log('Cleaned up Cloudinary file:', publicIdToDelete);
+        await cloudinary.uploader.destroy(req.file.public_id, { resource_type: 'auto' });
+        console.log('Cleaned up file:', req.file.public_id);
       } catch (cleanupError) {
-        console.error('Error cleaning up Cloudinary file:', cleanupError);
+        console.error('Cleanup failed:', cleanupError.message);
       }
     }
     
-    // Return proper JSON error response
-    return res.status(500).json({ 
-      message: 'Internal server error during song upload',
-      error: process.env.NODE_ENV === 'development' ? error.message : 'Upload failed'
+    return res.status(500).json({
+      success: false,
+      message: 'Upload failed',
+      error: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error'
     });
   }
 });
 
-// get song by ID
+// Get song by ID
 app.put('/api/songs/:id', authenticateToken, async (req, res) => {
   try {
     const { id } = req.params;
     const { title, artist } = req.body;
 
     const song = await Song.findOneAndUpdate(
-      { _id: id, userId: req.user.userId }, // Only update user's songs
+      { _id: id, userId: req.user.userId }, 
       { title, artist },
       { new: true }
     );
@@ -470,16 +430,15 @@ app.put('/api/songs/:id', authenticateToken, async (req, res) => {
 app.delete('/api/songs/:id', authenticateToken, async (req, res) => {
   try {
     const { id } = req.params;
-    const song = await Song.findOne({ _id: id, userId: req.user.userId });
+    const song = await Song.findOne({ _id: id, userId: req.user.userId }); // Use string directly
 
     if (!song) {
       return res.status(404).json({ message: 'Song not found' });
     }
 
-    // Delete from Cloudinary if in production
     if (process.env.NODE_ENV === 'production' && song.publicId) {
       try {
-        await cloudinary.uploader.destroy(song.publicId, { resource_type: 'video' });
+        await cloudinary.uploader.destroy(song.publicId, { resource_type: 'auto' }); // FIXED
       } catch (cloudinaryError) {
         console.error('Error deleting from Cloudinary:', cloudinaryError);
       }
@@ -495,9 +454,14 @@ app.delete('/api/songs/:id', authenticateToken, async (req, res) => {
 // Get all songs of the user
 app.get('/api/songs', authenticateToken, async (req, res) => {
   try {
+    console.log('Fetching songs for user:', req.user.userId);
+    
     const songs = await Song.find({ userId: req.user.userId }).sort({ createdAt: -1 });
+    console.log('Found songs:', songs.length);
+    
     res.json(songs);
   } catch (error) {
+    console.error('Error fetching songs:', error);
     res.status(500).json({ message: error.message });
   }
 });

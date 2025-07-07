@@ -17,10 +17,9 @@ const createAuthenticatedApi = () => {
   return axios.create({
     baseURL: 'https://gerardify-vercel-backend.vercel.app/api',
     headers: {
-      'Authorization': `Bearer ${token}`,
-      'Content-Type': 'application/json'
+      'Authorization': `Bearer ${token}`
     },
-    timeout: 30000 // 30 second timeout
+    timeout: 30000
   });
 };
 
@@ -93,15 +92,15 @@ function Library({ setCurrentSong, playlists, setPlaylists, setCurrentPlaylist, 
 
   const handleSongFormSubmit = async (e) => {
   e.preventDefault();
+  
   if (!newSongData.file || !newSongData.title.trim() || !newSongData.artist.trim()) {
     alert('Please fill in all required fields');
     return;
   }
 
+  console.log('Starting upload...');
+  
   try {
-    console.log('Starting song upload...');
-    
-    // Check if we have a valid token
     const token = localStorage.getItem('token');
     if (!token) {
       alert('Please log in again');
@@ -109,100 +108,135 @@ function Library({ setCurrentSong, playlists, setPlaylists, setCurrentPlaylist, 
       return;
     }
 
-    const compressedFile = await compressAudio(newSongData.file);
-    if (!compressedFile) return;
+    // Validate token format
+    try {
+      const payload = JSON.parse(atob(token.split('.')[1]));
+      if (payload.exp * 1000 < Date.now()) {
+        alert('Session expired. Please log in again.');
+        localStorage.removeItem('token');
+        localStorage.removeItem('user');
+        window.location.href = '/';
+        return;
+      }
+    } catch (tokenError) {
+      console.error('Invalid token format:', tokenError);
+      alert('Invalid session. Please log in again.');
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
+      window.location.href = '/';
+      return;
+    }
 
-    const audio = new Audio(newSongData.tempUrl);
+    let duration = '0:00'; 
     
-    await new Promise((resolve, reject) => {
-      audio.addEventListener('loadedmetadata', async () => {
-        try {
-          const duration = Math.floor(audio.duration);
-          const minutes = Math.floor(duration / 60);
-          const seconds = duration % 60;
-          const formattedDuration = `${minutes}:${seconds.toString().padStart(2, '0')}`;
+    try {
+      const audio = new Audio(newSongData.tempUrl);
+      
+      duration = await new Promise((resolve, reject) => {
+        const timeoutId = setTimeout(() => {
+          reject(new Error('Audio loading timeout'));
+        }, 5000);
 
-          console.log('File details:', {
-            name: compressedFile.name,
-            size: compressedFile.size,
-            type: compressedFile.type,
-            duration: formattedDuration
-          });
-
-          // Create FormData for file upload
-          const formData = new FormData();
-          formData.append('file', compressedFile); 
-          formData.append('title', newSongData.title.trim());
-          formData.append('artist', newSongData.artist.trim());
-          formData.append('duration', formattedDuration);
-
-          console.log('Uploading to backend...');
-
-          // Direct axios call with explicit headers
-          const response = await axios.post(
-            'https://gerardify-vercel-backend.vercel.app/api/songs',
-            formData,
-            {
-              headers: {
-                'Authorization': `Bearer ${token}`,
-                'Content-Type': 'multipart/form-data'
-              },
-              timeout: 60000 // 60 second timeout for file uploads
-            }
-          );
-
-          const data = response.data;
-          console.log('Song upload response:', data);
-          
-          const newSong = {
-            id: data._id,
-            title: data.title,
-            artist: data.artist,
-            duration: data.duration,
-            url: data.filePath
-          };
-
-          // Update songs state
-          setSongs(prevSongs => [...prevSongs, newSong]);
-          setCurrentPlaylist(prevPlaylist => [...prevPlaylist, newSong]);
-          
-          alert('Song uploaded successfully!');
-          console.log('New song added:', newSong);
-          resolve();
-        } catch (error) {
-          console.error('Upload error:', error);
-          
-          if (error.response?.status === 401 || error.response?.status === 403) {
-            alert('Session expired. Please log in again.');
-            localStorage.removeItem('token');
-            localStorage.removeItem('user');
-            window.location.href = '/';
-          } else {
-            const errorMsg = error.response?.data?.message || 'Failed to upload song. Please try again.';
-            alert(`Upload failed: ${errorMsg}`);
-          }
-          reject(error);
-        }
+        audio.addEventListener('loadedmetadata', () => {
+          clearTimeout(timeoutId);
+          const durationSeconds = Math.floor(audio.duration);
+          const minutes = Math.floor(durationSeconds / 60);
+          const seconds = durationSeconds % 60;
+          const formatted = `${minutes}:${seconds.toString().padStart(2, '0')}`;
+          resolve(formatted);
+        });
+        
+        audio.addEventListener('error', (e) => {
+          clearTimeout(timeoutId);
+          console.warn('Could not get audio duration:', e);
+          resolve('0:00');
+        });
       });
+    } catch (durationError) {
+      console.warn('Duration calculation failed:', durationError);
+      duration = '0:00'; 
+    }
+    
+    // Create form data
+    const formData = new FormData();
+    formData.append('file', newSongData.file);
+    formData.append('title', newSongData.title.trim());
+    formData.append('artist', newSongData.artist.trim());
+    formData.append('duration', duration);
 
-      audio.addEventListener('error', () => {
-        alert('Error loading audio file. Please try a different file.');
-        reject(new Error('Audio load error'));
-      });
+    console.log('Uploading:', {
+      title: newSongData.title.trim(),
+      artist: newSongData.artist.trim(),
+      duration: duration,
+      fileSize: newSongData.file.size,
+      fileName: newSongData.file.name
     });
 
-    // Reset the song form
-    setNewSongData({
-      title: '',
-      artist: '',
-      file: null,
-      tempUrl: ''
+    // Upload to backend
+    const response = await fetch('https://gerardify-vercel-backend.vercel.app/api/songs', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${token}`
+      },
+      body: formData
     });
-    setShowSongForm(false);
+
+    console.log('Response status:', response.status);
+    
+    let result;
+    try {
+      result = await response.json();
+    } catch (jsonError) {
+      console.error('Failed to parse JSON response:', jsonError);
+      throw new Error('Invalid response from server');
+    }
+    
+    console.log('Response data:', result);
+
+    if (!response.ok) {
+      throw new Error(result.message || `Server error: ${response.status}`);
+    }
+
+    if (result.success && result.song) {
+      const newSong = {
+        id: result.song._id,
+        title: result.song.title,
+        artist: result.song.artist,
+        duration: result.song.duration,
+        url: result.song.filePath
+      };
+
+      console.log('New song created:', newSong);
+
+      // Update songs state
+      setSongs(prevSongs => [...prevSongs, newSong]);
+      setCurrentPlaylist(prevPlaylist => [...prevPlaylist, newSong]);
+      
+      alert('Song uploaded successfully! 🎉');
+      
+      // Reset form
+      setNewSongData({
+        title: '',
+        artist: '',
+        file: null,
+        tempUrl: ''
+      });
+      setShowSongForm(false);
+    } else {
+      throw new Error('Invalid response format from server');
+    }
 
   } catch (error) {
-    console.error('Error in song upload:', error);
-    alert('Upload failed. Please try again.');
+    console.error('Upload error:', error);
+    
+    if (error.message.includes('401') || error.message.includes('403')) {
+      alert('Session expired. Please log in again.');
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
+      window.location.href = '/';
+    } else {
+      alert(`Upload failed: ${error.message}`);
+    }
   }
 };
 
@@ -218,7 +252,7 @@ function Library({ setCurrentSong, playlists, setPlaylists, setCurrentPlaylist, 
           title: song.title,
           artist: song.artist,
           duration: song.duration,
-          url: song.filePath // This is the Cloudinary URL
+          url: song.filePath 
         }));
         setSongs(formattedSongs);
         console.log('Formatted songs:', formattedSongs);

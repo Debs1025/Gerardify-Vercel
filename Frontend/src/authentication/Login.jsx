@@ -16,12 +16,17 @@ function Login({ onLogin }) {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [successMessage, setSuccessMessage] = useState('');
+  const [showPassword, setShowPassword] = useState(false); // Add this state
 
   const handleChange = (e) => {
     setFormData({
       ...formData,
       [e.target.name]: e.target.value
     });
+  };
+
+  const togglePasswordVisibility = () => {
+    setShowPassword(!showPassword);
   };
 
   const handleSubmit = async (e) => {
@@ -51,7 +56,7 @@ function Login({ onLogin }) {
         setIsLogin(true);
         setFormData({
           username: '',
-          email: formData.email, // Keep email for convenience
+          email: formData.email, 
           password: ''
         });
       }
@@ -66,6 +71,7 @@ function Login({ onLogin }) {
     setIsLogin(!isLogin);
     setError('');
     setSuccessMessage('');
+    setShowPassword(false); 
     setFormData({
       username: '',
       email: '',
@@ -114,9 +120,9 @@ function Login({ onLogin }) {
               required
             />
           </div>
-          <div className="form-group">
+          <div className="form-group password-group">
             <input
-              type="password"
+              type={showPassword ? "text" : "password"}
               name="password"
               placeholder="Password (use a strong password)"
               value={formData.password}
@@ -124,6 +130,13 @@ function Login({ onLogin }) {
               required
               minLength="8"
             />
+            <button 
+              type="button" 
+              className="password-toggle-btn"
+              onClick={togglePasswordVisibility}
+            >
+              <i className={`bi ${showPassword ? 'bi-eye-slash' : 'bi-eye'}`}></i>
+            </button>
           </div>
           {error && <p className="error-message">{error}</p>}
           <button type="submit" disabled={loading}>

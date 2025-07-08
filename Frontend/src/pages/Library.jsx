@@ -34,6 +34,16 @@ function Library({ setCurrentSong, playlists, setPlaylists, setCurrentPlaylist, 
     file: null,
     tempUrl: ''
   });
+  const [tempEditedSongs, setTempEditedSongs] = useState({});
+  const [tempDeletedSongs, setTempDeletedSongs] = useState(new Set()); 
+  
+  useEffect(() => {
+    const tempEdits = JSON.parse(localStorage.getItem('tempEditedSongs') || '{}');
+    const tempDeleted = JSON.parse(localStorage.getItem('tempDeletedSongs') || '[]');
+    
+    setTempEditedSongs(tempEdits);
+    setTempDeletedSongs(new Set(tempDeleted));
+  }, []);
 
   const handleCreatePlaylist = async (e) => { 
     e.preventDefault();
@@ -246,11 +256,11 @@ const handleSongFormSubmit = async (e) => {
           url: song.filePath,
           isPreloaded: false
         }));
-        
+
         // Fetch preloaded songs
         return api.get('/preloaded-songs').then(preloadedResponse => {
           console.log('Fetched preloaded songs:', preloadedResponse.data);
-          const preloadedSongs = preloadedResponse.data.map(song => ({
+          let preloadedSongs = preloadedResponse.data.map(song => ({
             id: song.id,
             title: song.title,
             artist: song.artist,
@@ -258,6 +268,21 @@ const handleSongFormSubmit = async (e) => {
             url: song.filePath,
             isPreloaded: true
           }));
+          
+          // Apply temporary edits to preloaded songs
+          preloadedSongs = preloadedSongs.map(song => {
+            if (tempEditedSongs[song.id]) {
+              return {
+                ...song,
+                title: tempEditedSongs[song.id].title || song.title,
+                artist: tempEditedSongs[song.id].artist || song.artist
+              };
+            }
+            return song;
+          });
+          
+          // Filter out temporarily deleted preloaded songs
+          preloadedSongs = preloadedSongs.filter(song => !tempDeletedSongs.has(song.id));
           
           // Combine user songs with preloaded songs
           const allSongs = [...preloadedSongs, ...userSongs];
@@ -269,7 +294,7 @@ const handleSongFormSubmit = async (e) => {
         console.error('Error fetching songs:', error);
       });
 
-    // Fetch playlists (unchanged)
+    // Fetch user playlists
     api.get('/playlists')
       .then(response => {
         setPlaylists(response.data);
@@ -277,7 +302,7 @@ const handleSongFormSubmit = async (e) => {
       .catch(error => {
         console.error('Error fetching playlists:', error);
       });
-  }, [setSongs, setPlaylists]);
+  }, [setSongs, setPlaylists, tempEditedSongs, tempDeletedSongs]); 
 
   const handlePlaylistClick = (playlist) => {
     navigate(`/album/${playlist.id}`);

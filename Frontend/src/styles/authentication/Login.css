@@ -170,3 +170,36 @@ p {
     font-size: 2rem;
   }
 }
+
+.password-group {
+  position: relative;
+}
+
+.password-toggle-btn {
+  position: absolute;
+  right: 15px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  color: #888;
+  cursor: pointer;
+  font-size: 18px;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: color 0.3s ease;
+}
+
+.password-toggle-btn:hover {
+  color: #d51870;
+}
+
+.password-toggle-btn:focus {
+  outline: none;
+}
+
+.password-group input {
+  padding-right: 50px;
+}

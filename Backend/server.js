@@ -481,28 +481,18 @@ app.get('/api/preloaded-songs', (req, res) => {
     {
       id: 'preload_1',
       _id: 'preload_1',
-      title: 'Days',
-      artist: 'Sample Artist',
+      title: 'The Days',
+      artist: 'Chrystal, NOTION',
       duration: '3:45',
       filePath: `${backendUrl}/songs/days.mp3`, 
       publicId: 'preload_days',
       isPreloaded: true
     },
     {
-      id: 'preload_2',
-      _id: 'preload_2',
-      title: 'End',
-      artist: 'Sample Artist',
-      duration: '4:12',
-      filePath: `${backendUrl}/songs/end.mp3`, 
-      publicId: 'preload_end',
-      isPreloaded: true
-    },
-    {
       id: 'preload_3',
       _id: 'preload_3',
       title: 'Escapism',
-      artist: 'Sample Artist',
+      artist: 'Raye, 070 Shake',
       duration: '3:28',
       filePath: `${backendUrl}/songs/escapism.mp3`, 
       publicId: 'preload_escapism',
@@ -512,7 +502,7 @@ app.get('/api/preloaded-songs', (req, res) => {
       id: 'preload_4',
       _id: 'preload_4',
       title: 'Feel',
-      artist: 'Sample Artist',
+      artist: 'd4vd',
       duration: '3:55',
       filePath: `${backendUrl}/songs/feel.mp3`, 
       publicId: 'preload_feel',
@@ -521,8 +511,8 @@ app.get('/api/preloaded-songs', (req, res) => {
     {
       id: 'preload_5',
       _id: 'preload_5',
-      title: 'Lady',
-      artist: 'Sample Artist',
+      title: 'Lady Killers II',
+      artist: 'G-eazy',
       duration: '4:03',
       filePath: `${backendUrl}/songs/lady.mp3`, 
       publicId: 'preload_lady',
@@ -532,7 +522,7 @@ app.get('/api/preloaded-songs', (req, res) => {
       id: 'preload_6',
       _id: 'preload_6',
       title: 'Multo',
-      artist: 'Sample Artist',
+      artist: 'Cup of Joe',
       duration: '3:37',
       filePath: `${backendUrl}/songs/multo.mp3`, 
       publicId: 'preload_multo',
@@ -541,8 +531,8 @@ app.get('/api/preloaded-songs', (req, res) => {
     {
       id: 'preload_7',
       _id: 'preload_7',
-      title: 'Night',
-      artist: 'Sample Artist',
+      title: 'Night Like This',
+      artist: 'The Kid Laroi',
       duration: '4:21',
       filePath: `${backendUrl}/songs/night.mp3`, 
       publicId: 'preload_night',
@@ -551,8 +541,8 @@ app.get('/api/preloaded-songs', (req, res) => {
     {
       id: 'preload_8',
       _id: 'preload_8',
-      title: 'Sailor',
-      artist: 'Sample Artist',
+      title: 'Sailor Song',
+      artist: 'Gigi Perez',
       duration: '3:14',
       filePath: `${backendUrl}/songs/sailor.mp3`, 
       publicId: 'preload_sailor',
@@ -562,20 +552,10 @@ app.get('/api/preloaded-songs', (req, res) => {
       id: 'preload_9',
       _id: 'preload_9',
       title: 'Sino',
-      artist: 'Sample Artist',
+      artist: 'Unique Salonga',
       duration: '3:50',
       filePath: `${backendUrl}/songs/sino.mp3`, 
       publicId: 'preload_sino',
-      isPreloaded: true
-    },
-    {
-      id: 'preload_10',
-      _id: 'preload_10',
-      title: 'Young',
-      artist: 'Sample Artist',
-      duration: '4:15',
-      filePath: `${backendUrl}/songs/young.mp3`, 
-      publicId: 'preload_young',
       isPreloaded: true
     }
   ];
@@ -591,22 +571,22 @@ app.put('/api/songs/:id', authenticateToken, async (req, res) => {
 
     // Check if it's a preloaded song
     if (id.startsWith('preload_')) {
-      // For preloaded songs, we'll return the updated data but not save to database
-      // This allows frontend editing while keeping the files static
+      // For preloaded songs, return success but don't persist changes
+      // This allows frontend to handle temporary editing
       const updatedSong = {
         _id: id,
         id: id,
         title: title,
         artist: artist,
-        // Keep original duration and filePath
-        duration: '3:45', // You could make this dynamic based on the song ID
-        filePath: `${process.env.NODE_ENV === 'production' ? 'https://gerardify-vercel-backend.vercel.app' : 'http://localhost:5000'}/songs/${id.replace('preload_', '')}.mp3`
+        duration: '3:45', 
+        isPreloaded: true,
+        isTemporary: true 
       };
       
       return res.json(updatedSong);
     }
 
-    // Handle regular user songs
+    // Handle regular user songs (persist changes)
     const song = await Song.findOneAndUpdate(
       { _id: id, userId: req.user.userId }, 
       { title, artist },
@@ -630,12 +610,14 @@ app.delete('/api/songs/:id', authenticateToken, async (req, res) => {
     
     // Check if it's a preloaded song
     if (id.startsWith('preload_')) {
-      // For preloaded songs, we'll just return success without actually deleting
-      // This allows frontend "deletion" while keeping the files available
-      return res.json({ message: 'Song deleted successfully' });
+      // For preloaded songs, return success but don't actually delete
+      // This allows frontend to handle temporary deletion
+      return res.json({ 
+        message: 'Song deleted successfully',
+        isTemporary: true 
+      });
     }
     
-    // Handle regular user songs
     const song = await Song.findOne({ _id: id, userId: req.user.userId });
 
     if (!song) {
@@ -803,15 +785,13 @@ app.post('/api/playlists/:id/songs', authenticateToken, async (req, res) => {
         
       const preloadedSongs = {
         'preload_1': { title: 'Days', artist: 'Sample Artist', duration: '3:45', filePath: `${backendUrl}/songs/days.mp3` },
-        'preload_2': { title: 'End', artist: 'Sample Artist', duration: '4:12', filePath: `${backendUrl}/songs/end.mp3` },
         'preload_3': { title: 'Escapism', artist: 'Sample Artist', duration: '3:28', filePath: `${backendUrl}/songs/escapism.mp3` },
         'preload_4': { title: 'Feel', artist: 'Sample Artist', duration: '3:55', filePath: `${backendUrl}/songs/feel.mp3` },
         'preload_5': { title: 'Lady', artist: 'Sample Artist', duration: '4:03', filePath: `${backendUrl}/songs/lady.mp3` },
         'preload_6': { title: 'Multo', artist: 'Sample Artist', duration: '3:37', filePath: `${backendUrl}/songs/multo.mp3` },
         'preload_7': { title: 'Night', artist: 'Sample Artist', duration: '4:21', filePath: `${backendUrl}/songs/night.mp3` },
         'preload_8': { title: 'Sailor', artist: 'Sample Artist', duration: '3:14', filePath: `${backendUrl}/songs/sailor.mp3` },
-        'preload_9': { title: 'Sino', artist: 'Sample Artist', duration: '3:50', filePath: `${backendUrl}/songs/sino.mp3` },
-        'preload_10': { title: 'Young', artist: 'Sample Artist', duration: '4:15', filePath: `${backendUrl}/songs/young.mp3` }
+        'preload_9': { title: 'Sino', artist: 'Sample Artist', duration: '3:50', filePath: `${backendUrl}/songs/sino.mp3` }
       };
 
       songToAdd = preloadedSongs[songId];

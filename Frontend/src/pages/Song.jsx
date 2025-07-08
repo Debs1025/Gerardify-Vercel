@@ -45,19 +45,45 @@ function Song({ setCurrentSong, setIsPlaying, songs, setSongs }) {
 
       const updatedSong = response.data;
       
-      setSongs(prevSongs => {
-        const updatedSongs = prevSongs.map(s => 
-          s.id === song.id 
-            ? { 
-                ...s, 
-                title: updatedSong.title, 
-                artist: updatedSong.artist 
-              }
-            : s
-        );
-        return updatedSongs;
-      });
+      // Check if this is a temporary edit (preloaded song)
+      if (updatedSong.isTemporary && song.isPreloaded) {
+        // Handle temporary edit - update local state only
+        setSongs(prevSongs => {
+          return prevSongs.map(s => 
+            s.id === song.id 
+              ? { 
+                  ...s, 
+                  title: updatedSong.title, 
+                  artist: updatedSong.artist 
+                }
+              : s
+          );
+        });
+        
+        // Store in localStorage for persistence until refresh
+        const tempEdits = JSON.parse(localStorage.getItem('tempEditedSongs') || '{}');
+        tempEdits[song.id] = {
+          title: updatedSong.title,
+          artist: updatedSong.artist
+        };
+        localStorage.setItem('tempEditedSongs', JSON.stringify(tempEdits));
+      } else {
+        // Handle permanent edit (user song)
+        setSongs(prevSongs => {
+          const updatedSongs = prevSongs.map(s => 
+            s.id === song.id 
+              ? { 
+                  ...s, 
+                  title: updatedSong.title, 
+                  artist: updatedSong.artist 
+                }
+              : s
+          );
+          return updatedSongs;
+        });
+      }
 
+      // Update the current song object
       Object.assign(song, {
         title: updatedSong.title,
         artist: updatedSong.artist
@@ -79,10 +105,23 @@ function Song({ setCurrentSong, setIsPlaying, songs, setSongs }) {
   const confirmDelete = async () => {
     try {
       const api = createAuthenticatedApi();
-      await api.delete(`/songs/${song.id}`);
+      const response = await api.delete(`/songs/${song.id}`);
       
-      const updatedSongs = songs.filter(s => s.id !== song.id);
-      setSongs(updatedSongs);
+      if (response.data.isTemporary && song.isPreloaded) {
+        // Handle temporary delete
+        const updatedSongs = songs.filter(s => s.id !== song.id);
+        setSongs(updatedSongs);
+        
+        // Store in localStorage for persistence until refresh
+        const tempDeleted = JSON.parse(localStorage.getItem('tempDeletedSongs') || '[]');
+        tempDeleted.push(song.id);
+        localStorage.setItem('tempDeletedSongs', JSON.stringify(tempDeleted));
+      } else {
+        // Handle permanent delete (user song)
+        const updatedSongs = songs.filter(s => s.id !== song.id);
+        setSongs(updatedSongs);
+      }
+      
       navigate('/library');
     } catch (error) {
       console.error('Error deleting song:', error);

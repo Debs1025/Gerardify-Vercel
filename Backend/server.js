@@ -34,6 +34,8 @@ app.use((req, res, next) => {
   next();
 });
 
+app.use('/songs', express.static(path.join(__dirname, 'songs')));
+
 // Check JSON body content type
 app.use((req, res, next) => {
   console.log('Content-Type:', req.headers['content-type']);
@@ -375,7 +377,6 @@ app.post('/api/songs', authenticateToken, upload.single('file'), async (req, res
       });
     }
 
-    // Check if Cloudinary file upload was successful
     if (!req.file.path) {
       console.log('ERROR: Cloudinary upload failed - no file path');
       return res.status(500).json({
@@ -471,12 +472,141 @@ app.post('/api/songs', authenticateToken, upload.single('file'), async (req, res
   }
 });
 
+app.get('/api/preloaded-songs', (req, res) => {
+  const backendUrl = process.env.NODE_ENV === 'production' 
+    ? 'https://gerardify-vercel-backend.vercel.app' 
+    : 'http://localhost:5000';
+    
+  const preloadedSongs = [
+    {
+      id: 'preload_1',
+      _id: 'preload_1',
+      title: 'Days',
+      artist: 'Sample Artist',
+      duration: '3:45',
+      filePath: `${backendUrl}/songs/days.mp3`, 
+      publicId: 'preload_days',
+      isPreloaded: true
+    },
+    {
+      id: 'preload_2',
+      _id: 'preload_2',
+      title: 'End',
+      artist: 'Sample Artist',
+      duration: '4:12',
+      filePath: `${backendUrl}/songs/end.mp3`, 
+      publicId: 'preload_end',
+      isPreloaded: true
+    },
+    {
+      id: 'preload_3',
+      _id: 'preload_3',
+      title: 'Escapism',
+      artist: 'Sample Artist',
+      duration: '3:28',
+      filePath: `${backendUrl}/songs/escapism.mp3`, 
+      publicId: 'preload_escapism',
+      isPreloaded: true
+    },
+    {
+      id: 'preload_4',
+      _id: 'preload_4',
+      title: 'Feel',
+      artist: 'Sample Artist',
+      duration: '3:55',
+      filePath: `${backendUrl}/songs/feel.mp3`, 
+      publicId: 'preload_feel',
+      isPreloaded: true
+    },
+    {
+      id: 'preload_5',
+      _id: 'preload_5',
+      title: 'Lady',
+      artist: 'Sample Artist',
+      duration: '4:03',
+      filePath: `${backendUrl}/songs/lady.mp3`, 
+      publicId: 'preload_lady',
+      isPreloaded: true
+    },
+    {
+      id: 'preload_6',
+      _id: 'preload_6',
+      title: 'Multo',
+      artist: 'Sample Artist',
+      duration: '3:37',
+      filePath: `${backendUrl}/songs/multo.mp3`, 
+      publicId: 'preload_multo',
+      isPreloaded: true
+    },
+    {
+      id: 'preload_7',
+      _id: 'preload_7',
+      title: 'Night',
+      artist: 'Sample Artist',
+      duration: '4:21',
+      filePath: `${backendUrl}/songs/night.mp3`, 
+      publicId: 'preload_night',
+      isPreloaded: true
+    },
+    {
+      id: 'preload_8',
+      _id: 'preload_8',
+      title: 'Sailor',
+      artist: 'Sample Artist',
+      duration: '3:14',
+      filePath: `${backendUrl}/songs/sailor.mp3`, 
+      publicId: 'preload_sailor',
+      isPreloaded: true
+    },
+    {
+      id: 'preload_9',
+      _id: 'preload_9',
+      title: 'Sino',
+      artist: 'Sample Artist',
+      duration: '3:50',
+      filePath: `${backendUrl}/songs/sino.mp3`, 
+      publicId: 'preload_sino',
+      isPreloaded: true
+    },
+    {
+      id: 'preload_10',
+      _id: 'preload_10',
+      title: 'Young',
+      artist: 'Sample Artist',
+      duration: '4:15',
+      filePath: `${backendUrl}/songs/young.mp3`, 
+      publicId: 'preload_young',
+      isPreloaded: true
+    }
+  ];
+  
+  res.json(preloadedSongs);
+});
+
 // Get song by ID
 app.put('/api/songs/:id', authenticateToken, async (req, res) => {
   try {
     const { id } = req.params;
     const { title, artist } = req.body;
 
+    // Check if it's a preloaded song
+    if (id.startsWith('preload_')) {
+      // For preloaded songs, we'll return the updated data but not save to database
+      // This allows frontend editing while keeping the files static
+      const updatedSong = {
+        _id: id,
+        id: id,
+        title: title,
+        artist: artist,
+        // Keep original duration and filePath
+        duration: '3:45', // You could make this dynamic based on the song ID
+        filePath: `${process.env.NODE_ENV === 'production' ? 'https://gerardify-vercel-backend.vercel.app' : 'http://localhost:5000'}/songs/${id.replace('preload_', '')}.mp3`
+      };
+      
+      return res.json(updatedSong);
+    }
+
+    // Handle regular user songs
     const song = await Song.findOneAndUpdate(
       { _id: id, userId: req.user.userId }, 
       { title, artist },
@@ -497,6 +627,15 @@ app.put('/api/songs/:id', authenticateToken, async (req, res) => {
 app.delete('/api/songs/:id', authenticateToken, async (req, res) => {
   try {
     const { id } = req.params;
+    
+    // Check if it's a preloaded song
+    if (id.startsWith('preload_')) {
+      // For preloaded songs, we'll just return success without actually deleting
+      // This allows frontend "deletion" while keeping the files available
+      return res.json({ message: 'Song deleted successfully' });
+    }
+    
+    // Handle regular user songs
     const song = await Song.findOne({ _id: id, userId: req.user.userId });
 
     if (!song) {
@@ -653,28 +792,62 @@ app.post('/api/playlists/:id/songs', authenticateToken, async (req, res) => {
       return res.status(404).json({ message: 'Playlist not found' });
     }
 
-    const song = await Song.findOne({ 
-      _id: songId, 
-      userId: req.user.userId 
-    });
-    
-    if (!song) {
-      return res.status(404).json({ message: 'Song not found' });
+    let songToAdd;
+
+    // Check if it's a preloaded song
+    if (songId.startsWith('preload_')) {
+      // Handle preloaded songs
+      const backendUrl = process.env.NODE_ENV === 'production' 
+        ? 'https://gerardify-vercel-backend.vercel.app' 
+        : 'http://localhost:5000';
+        
+      const preloadedSongs = {
+        'preload_1': { title: 'Days', artist: 'Sample Artist', duration: '3:45', filePath: `${backendUrl}/songs/days.mp3` },
+        'preload_2': { title: 'End', artist: 'Sample Artist', duration: '4:12', filePath: `${backendUrl}/songs/end.mp3` },
+        'preload_3': { title: 'Escapism', artist: 'Sample Artist', duration: '3:28', filePath: `${backendUrl}/songs/escapism.mp3` },
+        'preload_4': { title: 'Feel', artist: 'Sample Artist', duration: '3:55', filePath: `${backendUrl}/songs/feel.mp3` },
+        'preload_5': { title: 'Lady', artist: 'Sample Artist', duration: '4:03', filePath: `${backendUrl}/songs/lady.mp3` },
+        'preload_6': { title: 'Multo', artist: 'Sample Artist', duration: '3:37', filePath: `${backendUrl}/songs/multo.mp3` },
+        'preload_7': { title: 'Night', artist: 'Sample Artist', duration: '4:21', filePath: `${backendUrl}/songs/night.mp3` },
+        'preload_8': { title: 'Sailor', artist: 'Sample Artist', duration: '3:14', filePath: `${backendUrl}/songs/sailor.mp3` },
+        'preload_9': { title: 'Sino', artist: 'Sample Artist', duration: '3:50', filePath: `${backendUrl}/songs/sino.mp3` },
+        'preload_10': { title: 'Young', artist: 'Sample Artist', duration: '4:15', filePath: `${backendUrl}/songs/young.mp3` }
+      };
+
+      songToAdd = preloadedSongs[songId];
+      if (!songToAdd) {
+        return res.status(404).json({ message: 'Preloaded song not found' });
+      }
+      
+      songToAdd._id = songId; // Use the preload ID
+    } else {
+      // Handle regular user songs
+      const song = await Song.findOne({ 
+        _id: songId, 
+        userId: req.user.userId 
+      });
+      
+      if (!song) {
+        return res.status(404).json({ message: 'Song not found' });
+      }
+      
+      songToAdd = {
+        _id: song._id,
+        title: song.title,
+        artist: song.artist,
+        duration: song.duration,
+        filePath: song.filePath
+      };
     }
 
+    // Check if song already exists in playlist
     if (playlist.songs.some(s => s._id.toString() === songId)) {
       return res.status(400).json({ message: 'Song already in playlist' });
     }
 
-    playlist.songs.push({
-      _id: song._id,
-      title: song.title,
-      artist: song.artist,
-      duration: song.duration,
-      filePath: song.filePath
-    });
-    
+    playlist.songs.push(songToAdd);
     await playlist.save();
+    
     const updatedPlaylist = await Playlist.findOne({ id: parseInt(id) });
     res.json(updatedPlaylist);
   } catch (error) {

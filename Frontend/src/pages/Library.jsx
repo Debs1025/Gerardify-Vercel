@@ -75,22 +75,7 @@ function Library({ setCurrentSong, playlists, setPlaylists, setCurrentPlaylist, 
     }
   };
 
-  const compressAudio = (file) => {
-    return new Promise((resolve) => {
-      const audio = new Audio(URL.createObjectURL(file));
-      
-      audio.addEventListener('loadedmetadata', () => {
-        resolve(file);
-      });
-      
-      audio.addEventListener('error', () => {
-        alert('Error loading audio file. Please try a different file.');
-        resolve(null);
-      });
-    });
-  };
-
-  const handleSongFormSubmit = async (e) => {
+const handleSongFormSubmit = async (e) => {
   e.preventDefault();
   
   if (!newSongData.file || !newSongData.title.trim() || !newSongData.artist.trim()) {
@@ -102,15 +87,18 @@ function Library({ setCurrentSong, playlists, setPlaylists, setCurrentPlaylist, 
   
   try {
     const token = localStorage.getItem('token');
+    console.log('Token from localStorage:', token ? 'Present' : 'Missing');
+    
     if (!token) {
       alert('Please log in again');
       window.location.href = '/';
       return;
     }
 
-    // Validate token format
-    try {
+  try {
       const payload = JSON.parse(atob(token.split('.')[1]));
+      console.log('Token payload:', payload);
+      
       if (payload.exp * 1000 < Date.now()) {
         alert('Session expired. Please log in again.');
         localStorage.removeItem('token');
@@ -172,16 +160,19 @@ function Library({ setCurrentSong, playlists, setPlaylists, setCurrentPlaylist, 
       fileName: newSongData.file.name
     });
 
-    // Upload to backend
+    console.log('Authorization header:', `Bearer ${token}`);
+
+    // Upload to backend with proper headers
     const response = await fetch('https://gerardify-vercel-backend.vercel.app/api/songs', {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${token}`
+        'Authorization': `Bearer ${token}` // Make sure this is properly formatted
       },
       body: formData
     });
 
     console.log('Response status:', response.status);
+    console.log('Response headers:', response.headers);
     
     let result;
     try {
@@ -212,7 +203,7 @@ function Library({ setCurrentSong, playlists, setPlaylists, setCurrentPlaylist, 
       setSongs(prevSongs => [...prevSongs, newSong]);
       setCurrentPlaylist(prevPlaylist => [...prevPlaylist, newSong]);
       
-      alert('Song uploaded successfully! 🎉');
+      alert('Song uploaded successfully!');
       
       // Reset form
       setNewSongData({
@@ -243,25 +234,42 @@ function Library({ setCurrentSong, playlists, setPlaylists, setCurrentPlaylist, 
   useEffect(() => {
     const api = createAuthenticatedApi();
     
-    // Fetch songs
+    // Fetch user songs
     api.get('/songs')
       .then(response => {
         console.log('Fetched songs from API:', response.data);
-        const formattedSongs = response.data.map(song => ({
+        const userSongs = response.data.map(song => ({
           id: song._id,
           title: song.title,
           artist: song.artist,
           duration: song.duration,
-          url: song.filePath 
+          url: song.filePath,
+          isPreloaded: false
         }));
-        setSongs(formattedSongs);
-        console.log('Formatted songs:', formattedSongs);
+        
+        // Fetch preloaded songs
+        return api.get('/preloaded-songs').then(preloadedResponse => {
+          console.log('Fetched preloaded songs:', preloadedResponse.data);
+          const preloadedSongs = preloadedResponse.data.map(song => ({
+            id: song.id,
+            title: song.title,
+            artist: song.artist,
+            duration: song.duration,
+            url: song.filePath,
+            isPreloaded: true
+          }));
+          
+          // Combine user songs with preloaded songs
+          const allSongs = [...preloadedSongs, ...userSongs];
+          setSongs(allSongs);
+          console.log('All songs (preloaded + user):', allSongs);
+        });
       })
       .catch(error => {
         console.error('Error fetching songs:', error);
       });
 
-    // Fetch playlists
+    // Fetch playlists (unchanged)
     api.get('/playlists')
       .then(response => {
         setPlaylists(response.data);
@@ -412,10 +420,10 @@ function Library({ setCurrentSong, playlists, setPlaylists, setCurrentPlaylist, 
               </label>
             </div>
           ) : (
-            <div className="library-songs-list">
+           <div className="library-songs-list">
               {songs.map((song, index) => (
                 <div 
-                  className="library-song-item" 
+                  className={`library-song-item ${song.isPreloaded ? 'preloaded' : ''}`}
                   key={song.id} 
                   onClick={() => handleSongClick(song)}
                 >

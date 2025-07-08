@@ -254,3 +254,20 @@
 .library-songs-content {
   margin-top: 20px;
 }
+
+.library-song-item.preloaded {
+  background: linear-gradient(135deg, #2a2a2a 0%, #1a1a1a 100%);
+  border-left: 3px solid #4CAF50;
+}
+
+.library-song-item.preloaded .library-song-title::after {
+  content: " (Built-in)";
+  color: #4CAF50;
+  font-size: 12px;
+  font-weight: normal;
+  margin-left: 8px;
+}
+
+.library-song-item.preloaded:hover {
+  background: linear-gradient(135deg, #3a3a3a 0%, #2a2a2a 100%);
+}

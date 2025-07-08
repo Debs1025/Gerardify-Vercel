@@ -58,7 +58,6 @@ function Song({ setCurrentSong, setIsPlaying, songs, setSongs }) {
         return updatedSongs;
       });
 
-      // Update the current song object
       Object.assign(song, {
         title: updatedSong.title,
         artist: updatedSong.artist

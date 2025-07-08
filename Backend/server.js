@@ -246,7 +246,7 @@ app.post('/api/auth/register', async (req, res) => {
     await user.save();
 
     const token = jwt.sign(
-      { userId: user._id, username: user.username },
+      { userId: user._id.toString(), username: user.username },  // ADD .toString()
       process.env.JWT_SECRET || 'gerardify-project',
       { expiresIn: '24h' }
     );
@@ -270,21 +270,18 @@ app.post('/api/auth/login', async (req, res) => {
   try {
     const { email, password } = req.body;
 
-    // Find user
     const user = await User.findOne({ email });
     if (!user) {
       return res.status(400).json({ message: 'Invalid credentials' });
     }
 
-    // Check password
     const isValidPassword = await bcrypt.compare(password, user.password);
     if (!isValidPassword) {
       return res.status(400).json({ message: 'Invalid credentials' });
     }
 
-    // Generate JWT token
     const token = jwt.sign(
-      { userId: user._id, username: user.username },
+      { userId: user._id.toString(), username: user.username }, 
       process.env.JWT_SECRET || 'gerardify-project',
       { expiresIn: '24h' }
     );

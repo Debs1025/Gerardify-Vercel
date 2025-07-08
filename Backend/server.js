@@ -430,7 +430,7 @@ app.put('/api/songs/:id', authenticateToken, async (req, res) => {
 app.delete('/api/songs/:id', authenticateToken, async (req, res) => {
   try {
     const { id } = req.params;
-    const song = await Song.findOne({ _id: id, userId: req.user.userId }); // Use string directly
+    const song = await Song.findOne({ _id: id, userId: req.user.userId });
 
     if (!song) {
       return res.status(404).json({ message: 'Song not found' });
@@ -438,7 +438,7 @@ app.delete('/api/songs/:id', authenticateToken, async (req, res) => {
 
     if (process.env.NODE_ENV === 'production' && song.publicId) {
       try {
-        await cloudinary.uploader.destroy(song.publicId, { resource_type: 'auto' }); // FIXED
+        await cloudinary.uploader.destroy(song.publicId, { resource_type: 'auto' }); 
       } catch (cloudinaryError) {
         console.error('Error deleting from Cloudinary:', cloudinaryError);
       }

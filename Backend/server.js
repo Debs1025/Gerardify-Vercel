@@ -315,26 +315,52 @@ app.get('/api/auth/me', authenticateToken, async (req, res) => {
 
 // Song Routes
 app.post('/api/songs', authenticateToken, upload.single('file'), async (req, res) => {
-  console.log('Starting song upload...');
+  console.log('=== SONG UPLOAD START ===');
   
   try {
+    // Log everything for debugging
+    console.log('Headers:', req.headers);
+    console.log('Body:', req.body);
+    console.log('File:', req.file);
+    console.log('User from token:', req.user);
+
     const { title, artist, duration } = req.body;
     
-    console.log('Request data:', { title, artist, duration });
-    console.log('User:', req.user);
-    console.log('File:', req.file ? { name: req.file.filename, size: req.file.size, public_id: req.file.public_id } : 'No file');
+    // More detailed validation logging
+    console.log('Validating fields:');
+    console.log('- title:', title, 'valid:', !!title?.trim());
+    console.log('- artist:', artist, 'valid:', !!artist?.trim());
+    console.log('- duration:', duration, 'valid:', !!duration?.trim());
+    console.log('- file:', !!req.file);
+    console.log('- userId:', req.user?.userId);
 
     // Validate required fields
-    if (!title?.trim() || !artist?.trim() || !duration?.trim()) {
-      console.log('Missing required fields');
+    if (!title?.trim()) {
+      console.log('ERROR: Missing title');
       return res.status(400).json({ 
         success: false,
-        message: 'Title, artist, and duration are required' 
+        message: 'Title is required' 
+      });
+    }
+
+    if (!artist?.trim()) {
+      console.log('ERROR: Missing artist');
+      return res.status(400).json({ 
+        success: false,
+        message: 'Artist is required' 
+      });
+    }
+
+    if (!duration?.trim()) {
+      console.log('ERROR: Missing duration');
+      return res.status(400).json({ 
+        success: false,
+        message: 'Duration is required' 
       });
     }
 
     if (!req.file) {
-      console.log('No file uploaded');
+      console.log('ERROR: No file uploaded');
       return res.status(400).json({ 
         success: false,
         message: 'Audio file is required' 
@@ -342,10 +368,19 @@ app.post('/api/songs', authenticateToken, upload.single('file'), async (req, res
     }
 
     if (!req.user?.userId) {
-      console.log('No user ID in token');
+      console.log('ERROR: No user ID in token');
       return res.status(401).json({ 
         success: false,
         message: 'User authentication failed' 
+      });
+    }
+
+    // Check if Cloudinary file upload was successful
+    if (!req.file.path) {
+      console.log('ERROR: Cloudinary upload failed - no file path');
+      return res.status(500).json({
+        success: false,
+        message: 'File upload to cloud storage failed'
       });
     }
 
@@ -358,15 +393,38 @@ app.post('/api/songs', authenticateToken, upload.single('file'), async (req, res
       userId: req.user.userId 
     };
 
-    console.log('Creating song with data:', songData);
+    console.log('=== ATTEMPTING DATABASE SAVE ===');
+    console.log('Song data to save:', songData);
 
-    // Save to database
+    // Test database connection first
+    if (mongoose.connection.readyState !== 1) {
+      console.log('ERROR: Database not connected');
+      return res.status(500).json({
+        success: false,
+        message: 'Database connection error'
+      });
+    }
+
+    // Create and save song
     const song = new Song(songData);
+    
+    // Validate the song object before saving
+    const validationError = song.validateSync();
+    if (validationError) {
+      console.log('ERROR: Validation failed:', validationError);
+      return res.status(400).json({
+        success: false,
+        message: 'Data validation failed',
+        details: Object.values(validationError.errors).map(err => err.message)
+      });
+    }
+
+    console.log('Saving song to database...');
     const savedSong = await song.save();
-    console.log('Song saved successfully:', savedSong._id);
+    console.log('SUCCESS: Song saved with ID:', savedSong._id);
     
     // Return success response
-    res.status(201).json({
+    const response = {
       success: true,
       message: 'Song uploaded successfully',
       song: {
@@ -379,24 +437,36 @@ app.post('/api/songs', authenticateToken, upload.single('file'), async (req, res
         userId: savedSong.userId,
         createdAt: savedSong.createdAt
       }
-    });
+    };
+
+    console.log('=== SONG UPLOAD SUCCESS ===');
+    res.status(201).json(response);
 
   } catch (error) {
-    console.error('Upload failed:', error);
+    console.log('=== SONG UPLOAD ERROR ===');
+    console.error('Error type:', error.name);
+    console.error('Error message:', error.message);
+    console.error('Error stack:', error.stack);
+    console.error('Full error:', error);
 
+    // Clean up uploaded file on error
     if (req.file?.public_id) {
       try {
+        console.log('Cleaning up Cloudinary file:', req.file.public_id);
         await cloudinary.uploader.destroy(req.file.public_id, { resource_type: 'auto' });
-        console.log('Cleaned up file:', req.file.public_id);
+        console.log('File cleanup successful');
       } catch (cleanupError) {
-        console.error('Cleanup failed:', cleanupError.message);
+        console.error('File cleanup failed:', cleanupError);
       }
     }
     
+    // Return detailed error information
     return res.status(500).json({
       success: false,
       message: 'Upload failed',
-      error: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error'
+      error: error.message,
+      errorType: error.name,
+      details: process.env.NODE_ENV === 'development' ? error.stack : undefined
     });
   }
 });

@@ -125,11 +125,8 @@
 
 .control-button.active {
   color: #d51870 !important;
-  background: rgba(213, 24, 112, 0.1);
-  border-radius: 50%;
 }
 
 .control-button.active:hover {
   color: #f01b7c !important;
-  background: rgba(213, 24, 112, 0.2);
 }

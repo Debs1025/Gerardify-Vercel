@@ -10,6 +10,14 @@ function MusicPlayer({ currentSong, isPlaying, setIsPlaying, playlist, setCurren
   const [isMuted, setIsMuted] = useState(false);
   const [isShuffleOn, setIsShuffleOn] = useState(false);
 
+  // Handle Volume Change
+  useEffect(() => {
+    const progressPercent = duration > 0 ? (currentTime / duration) * 100 : 0;
+    document.documentElement.style.setProperty('--progress', `${progressPercent}%`);
+    
+    document.documentElement.style.setProperty('--volume', `${volume * 100}%`);
+  }, [currentTime, duration, volume]);
+  
   // Manage Progress Bar and Time
   useEffect(() => {
     const audio = audioRef.current;

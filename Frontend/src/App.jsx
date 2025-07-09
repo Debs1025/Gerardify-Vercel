@@ -61,7 +61,7 @@ function App() {
           <div className="content-area">
             <Routes>
               <Route path="/" element={<Home playlists={playlists} />} />
-              <Route path="/search" element={<Search />} />
+              <Route path="/search" element={<Search setCurrentSong={setCurrentSong} setIsPlaying={setIsPlaying} />} />
               <Route path="/library" element={
                 <Library 
                   setCurrentSong={setCurrentSong}

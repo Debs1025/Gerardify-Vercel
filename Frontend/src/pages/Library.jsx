@@ -315,6 +315,7 @@ const handleSongFormSubmit = async (e) => {
   const handlePlayClick = (e, song) => {
     e.stopPropagation(); 
     console.log('Playing song:', song);
+    
     setCurrentSong({
       id: song.id,
       title: song.title,
@@ -322,7 +323,16 @@ const handleSongFormSubmit = async (e) => {
       duration: song.duration,
       url: song.url 
     });
-    setCurrentPlaylist(songs);
+    
+    const formattedPlaylist = songs.map(s => ({
+      id: s.id,
+      title: s.title,
+      artist: s.artist,
+      duration: s.duration,
+      url: s.url
+    }));
+    
+    setCurrentPlaylist(formattedPlaylist); 
     setIsPlaying(true);
   };
   

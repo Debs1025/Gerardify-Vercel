@@ -1,19 +1,19 @@
 import React, { useState, useEffect } from 'react';
 import '../styles/pages/Search.css';
 
-function Search({ setCurrentSong, setIsPlaying }) {
+function Search({ setCurrentSong, setIsPlaying, setCurrentPlaylist, songs }) {
   const [isFocused, setIsFocused] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
-  const [songs, setSongs] = useState([]);
+  const [preloadedSongs, setPreloadedSongs] = useState([]); 
   const [filteredSongs, setFilteredSongs] = useState([]);
-
+  
   useEffect(() => {
-    // Fetch preloaded songs from backend
-    fetch('https://gerardify-vercel-backend.vercel.app/api/preloaded-songs')
-      .then(res => res.json())
-      .then(data => setSongs(data))
-      .catch(err => console.error('Failed to fetch preloaded songs:', err));
-  }, []);
+      // Fetch preloaded songs from backend
+      fetch('https://gerardify-vercel-backend.vercel.app/api/preloaded-songs')
+        .then(res => res.json())
+        .then(data => setPreloadedSongs(data)) // ✅ Use new name
+        .catch(err => console.error('Failed to fetch preloaded songs:', err));
+    }, []);
 
   useEffect(() => {
     if (searchTerm.trim() === '') {
@@ -21,17 +21,21 @@ function Search({ setCurrentSong, setIsPlaying }) {
       return;
     }
     const lower = searchTerm.toLowerCase();
-    setFilteredSongs(
-      songs.filter(song =>
+    const allSongs = [...(songs || []), ...preloadedSongs];
+    const uniqueSongs = allSongs.filter((song, index, self) => 
+      index === self.findIndex(s => (s.id || s._id) === (song.id || song._id))
+    );
+
+  setFilteredSongs(
+      uniqueSongs.filter(song =>
         song.title.toLowerCase().includes(lower) ||
         song.artist.toLowerCase().includes(lower)
       )
     );
-  }, [searchTerm, songs]);
+  }, [searchTerm, songs, preloadedSongs]);
 
   const handlePlay = (song) => {
     if (setCurrentSong && setIsPlaying) {
-      // Map song to expected structure for the player and log for debugging
       const mappedSong = {
         id: song.id || song._id,
         title: song.title,
@@ -41,8 +45,23 @@ function Search({ setCurrentSong, setIsPlaying }) {
         publicId: song.publicId,
         isPreloaded: song.isPreloaded !== undefined ? song.isPreloaded : true
       };
+      
       console.log('Playing song from search:', mappedSong);
       setCurrentSong(mappedSong);
+      
+      const allSongs = [...(songs || []), ...preloadedSongs];
+      const formattedPlaylist = allSongs.map(s => ({
+        id: s.id || s._id,
+        title: s.title,
+        artist: s.artist,
+        duration: s.duration,
+        url: s.filePath || s.url
+      }));
+      
+      if (setCurrentPlaylist && formattedPlaylist.length > 0) {
+        setCurrentPlaylist(formattedPlaylist);
+      }
+      
       setIsPlaying(true);
     } else {
       console.warn('setCurrentSong or setIsPlaying not provided');

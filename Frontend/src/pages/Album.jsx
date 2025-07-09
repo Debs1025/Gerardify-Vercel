@@ -14,7 +14,7 @@ const createAuthenticatedApi = () => {
   });
 };
 
-function Album({ setCurrentSong, currentSong, setIsPlaying, playlists, setPlaylists, songs }) {
+function Album({ setCurrentSong, currentSong, setIsPlaying, playlists, setPlaylists, setCurrentPlaylist, songs }) {
   const { id } = useParams();
   const numericId = parseInt(id);
   const navigate = useNavigate();
@@ -141,16 +141,27 @@ function Album({ setCurrentSong, currentSong, setIsPlaying, playlists, setPlayli
 
   // Handle song click to play the song
   const handleSongClick = (song) => {
-    console.log('Playing song:', song);
+    console.log('Playing song from album:', song);
+    
+    
+    const albumPlaylist = currentAlbum.songs.map(albumSong => ({
+      id: albumSong._id || albumSong.id,
+      title: albumSong.title,
+      artist: albumSong.artist,
+      duration: albumSong.duration,
+      url: albumSong.filePath || albumSong.url 
+    }));
+    
     setCurrentSong({
       id: song._id || song.id,
       title: song.title,
       artist: song.artist,
       duration: song.duration,
-      url: song.filePath
-      ? song.filePath 
-      : `https://gerardify-vercel-backend.vercel.app/${song.filePath}`
+      url: song.filePath || song.url 
     });
+    
+    // Set the current playlist to only album songs
+    setCurrentPlaylist(albumPlaylist);
     setIsPlaying(true);
   };
 

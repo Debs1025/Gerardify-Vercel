@@ -61,7 +61,14 @@ function App() {
           <div className="content-area">
             <Routes>
               <Route path="/" element={<Home playlists={playlists} />} />
-              <Route path="/search" element={<Search setCurrentSong={setCurrentSong} setIsPlaying={setIsPlaying} />} />
+              <Route path="/search" element={
+                <Search 
+                  setCurrentSong={setCurrentSong} 
+                  setIsPlaying={setIsPlaying}
+                  setCurrentPlaylist={setCurrentPlaylist} 
+                  songs={songs} 
+                />
+              } />
               <Route path="/library" element={
                 <Library 
                   setCurrentSong={setCurrentSong}
@@ -75,7 +82,7 @@ function App() {
               />
               <Route path="/album/:id" element={
                 <Album 
-                  setCurrentSong={setCurrentSong} 
+                  setCurrentSong={setCurrentSong}
                   currentSong={currentSong}
                   setIsPlaying={setIsPlaying}
                   playlists={playlists}
@@ -88,6 +95,7 @@ function App() {
                 <Song 
                   setCurrentSong={setCurrentSong}
                   setIsPlaying={setIsPlaying}
+                  setCurrentPlaylist={setCurrentPlaylist}
                   songs={songs}
                   setSongs={setSongs}
                 />

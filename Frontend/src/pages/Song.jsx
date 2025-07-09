@@ -14,7 +14,7 @@ const createAuthenticatedApi = () => {
   });
 };
 
-function Song({ setCurrentSong, setIsPlaying, songs, setSongs }) {
+function Song({ setCurrentSong, setIsPlaying, songs, setSongs, setCurrentPlaylist }) {
   const location = useLocation();
   const navigate = useNavigate();
   const song = location.state?.song;
@@ -26,6 +26,18 @@ function Song({ setCurrentSong, setIsPlaying, songs, setSongs }) {
   const handlePlay = () => {
     if (song) {
       setCurrentSong(song);
+      
+      if (setCurrentPlaylist && songs) {
+        const formattedPlaylist = songs.map(s => ({
+          id: s.id,
+          title: s.title,
+          artist: s.artist,
+          duration: s.duration,
+          url: s.url
+        }));
+        setCurrentPlaylist(formattedPlaylist);
+      }
+      
       setIsPlaying(true);
     }
   };

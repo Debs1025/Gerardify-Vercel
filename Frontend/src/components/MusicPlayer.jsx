@@ -32,6 +32,7 @@ function MusicPlayer({ currentSong, isPlaying, setIsPlaying, playlist, setCurren
 
   // Previous and Next Song 
   const handleSkipForward = () => {
+    console.log('Skip forward clicked');
     console.log('Current playlist:', playlist);
     console.log('Current song:', currentSong); 
     
@@ -40,7 +41,12 @@ function MusicPlayer({ currentSong, isPlaying, setIsPlaying, playlist, setCurren
       return;
     }
     
-    const currentIndex = playlist.findIndex(song => song.id === currentSong.id);
+   
+    const currentIndex = playlist.findIndex(song => 
+      song.id === currentSong.id || 
+      song._id === currentSong.id || 
+      song.id === currentSong._id
+    );
     console.log('Current index:', currentIndex); 
     
     if (currentIndex > -1) {
@@ -49,9 +55,10 @@ function MusicPlayer({ currentSong, isPlaying, setIsPlaying, playlist, setCurren
       
       const nextSong = playlist[nextIndex];
       setCurrentSong({
-        id: nextSong.id,
+        id: nextSong.id || nextSong._id,
         title: nextSong.title,
         artist: nextSong.artist,
+        duration: nextSong.duration,
         url: nextSong.url
       });
       setIsPlaying(true);
@@ -61,14 +68,20 @@ function MusicPlayer({ currentSong, isPlaying, setIsPlaying, playlist, setCurren
   const handleSkipBackward = () => {
     if (!playlist?.length || !currentSong) return;
     
-    const currentIndex = playlist.findIndex(song => song.id === currentSong.id);
+    const currentIndex = playlist.findIndex(song => 
+      song.id === currentSong.id || 
+      song._id === currentSong.id || 
+      song.id === currentSong._id
+    );
+    
     if (currentIndex > -1) {
       const prevIndex = (currentIndex - 1 + playlist.length) % playlist.length;
       const prevSong = playlist[prevIndex];
       setCurrentSong({
-        id: prevSong.id,
+        id: prevSong.id || prevSong._id,
         title: prevSong.title,
         artist: prevSong.artist,
+        duration: prevSong.duration,
         url: prevSong.url
       });
       setIsPlaying(true);

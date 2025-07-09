@@ -157,6 +157,68 @@ function MusicPlayer({ currentSong, isPlaying, setIsPlaying, playlist, setCurren
     }
   }, [isPlaying]);
 
+  useEffect(() => {
+    const audio = audioRef.current;
+
+    const handleSongEnd = () => {
+      console.log('Song ended, auto-playing next song');
+      console.log('Shuffle enabled:', isShuffleOn);
+      
+      if (!playlist?.length || !currentSong) {
+        console.log('No playlist or current song available for auto-play');
+        return;
+      }
+      
+      let nextSong;
+      
+      if (isShuffleOn) {
+        const availableSongs = playlist.filter(song => 
+          song.id !== currentSong.id && song._id !== currentSong.id
+        );
+        
+        if (availableSongs.length === 0) {
+          nextSong = playlist[0];
+        } else {
+          const randomIndex = Math.floor(Math.random() * availableSongs.length);
+          nextSong = availableSongs[randomIndex];
+        }
+        
+        console.log('Auto-play Shuffle: Selected random song:', nextSong);
+      } else {
+        const currentIndex = playlist.findIndex(song => 
+          song.id === currentSong.id || 
+          song._id === currentSong.id || 
+          song.id === currentSong._id
+        );
+        console.log('Auto-play Normal: Current index:', currentIndex);
+        
+        if (currentIndex > -1) {
+          const nextIndex = (currentIndex + 1) % playlist.length;
+          console.log('Auto-play Normal: Next index:', nextIndex);
+          nextSong = playlist[nextIndex];
+        }
+      }
+      
+      if (nextSong) {
+        setCurrentSong({
+          id: nextSong.id || nextSong._id,
+          title: nextSong.title,
+          artist: nextSong.artist,
+          duration: nextSong.duration,
+          url: nextSong.url
+        });
+        setIsPlaying(true);
+        console.log('Auto-playing next song:', nextSong.title);
+      }
+    };
+
+    audio.addEventListener('ended', handleSongEnd);
+
+    return () => {
+      audio.removeEventListener('ended', handleSongEnd);
+    };
+  }, [playlist, currentSong, isShuffleOn, setCurrentSong, setIsPlaying]);
+
   const togglePlay = () => {
     if (!currentSong) return;
     setIsPlaying(!isPlaying);
@@ -200,11 +262,14 @@ function MusicPlayer({ currentSong, isPlaying, setIsPlaying, playlist, setCurren
           </div>
         )}
       </div>
-  
+
       {/* Middle section */}
       <div className="middle-section">
         <div className="player-controls">
-          {/* ✅ Add shuffle button */}
+          <button className="control-button" onClick={handleSkipBackward}>
+            <i className="bi bi-skip-start-fill"></i>
+          </button>
+          
           <button 
             className={`control-button ${isShuffleOn ? 'active' : ''}`} 
             onClick={toggleShuffle}
@@ -213,12 +278,10 @@ function MusicPlayer({ currentSong, isPlaying, setIsPlaying, playlist, setCurren
             <i className="bi bi-shuffle"></i>
           </button>
           
-          <button className="control-button" onClick={handleSkipBackward}>
-            <i className="bi bi-skip-start-fill"></i>
-          </button>
           <button className="control-button play" onClick={togglePlay}>
             <i className={`bi ${isPlaying ? 'bi-pause-circle-fill' : 'bi-play-circle-fill'}`}></i>
           </button>
+          
           <button className="control-button" onClick={handleSkipForward}>
             <i className="bi bi-skip-end-fill"></i>
           </button>
@@ -239,7 +302,7 @@ function MusicPlayer({ currentSong, isPlaying, setIsPlaying, playlist, setCurren
           />
         </div>
       </div>
-  
+
       {/* Right section - Volume Controls */}
       <div className="right-section">
         <div className="volume-controls">

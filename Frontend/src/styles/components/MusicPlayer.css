@@ -124,9 +124,9 @@
 }
 
 .control-button.active {
-  color: #d51870 !important;
+  color: #d51870; 
 }
 
 .control-button.active:hover {
-  color: #f01b7c !important;
+  color: #f01b7c;
 }

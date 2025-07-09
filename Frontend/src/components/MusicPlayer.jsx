@@ -17,7 +17,7 @@ function MusicPlayer({ currentSong, isPlaying, setIsPlaying, playlist, setCurren
     
     document.documentElement.style.setProperty('--volume', `${volume * 100}%`);
   }, [currentTime, duration, volume]);
-  
+
   // Manage Progress Bar and Time
   useEffect(() => {
     const audio = audioRef.current;
@@ -140,8 +140,13 @@ function MusicPlayer({ currentSong, isPlaying, setIsPlaying, playlist, setCurren
       audioRef.current.play().catch(error => {
         console.error("Error playing audio:", error);
       });
+    } else {
+      audioRef.current.pause();
+      audioRef.current.currentTime = 0;
+      setCurrentTime(0);
+      setDuration(0);
     }
-  }, [currentSong]); 
+  }, [currentSong]);
 
   useEffect(() => {
     if (currentSong) {

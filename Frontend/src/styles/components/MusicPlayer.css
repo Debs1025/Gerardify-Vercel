@@ -58,7 +58,7 @@
   width: 12px;
   height: 12px;
   border-radius: 50%;
-  background: #d51870;
+  background: #e91e63;
   cursor: pointer;
 }
 
@@ -66,7 +66,7 @@
   width: 12px;
   height: 12px;
   border-radius: 50%;
-  background: #d51870;
+  background: #e91e63;
   cursor: pointer;
   border: none;
 }
@@ -164,7 +164,7 @@
   width: 12px;
   height: 12px;
   border-radius: 50%;
-  background: #d51870;
+  background: #e91e63;
   cursor: pointer;
 }
 
@@ -172,7 +172,7 @@
   width: 12px;
   height: 12px;
   border-radius: 50%;
-  background: #d51870;
+  background: #e91e63;
   cursor: pointer;
   border: none;
 }
@@ -190,9 +190,9 @@
 }
 
 .control-button.active {
-  color: #d51870; 
+  color: #e91e63; 
 }
 
 .control-button.active:hover {
-  color: #f01b7c;
+  color: #f06292;
 }

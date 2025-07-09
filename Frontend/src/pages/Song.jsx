@@ -57,7 +57,6 @@ function Song({ setCurrentSong, setIsPlaying, songs, setSongs, setCurrentPlaylis
 
       const updatedSong = response.data;
       
-      // Check if this is a temporary edit (preloaded song)
       if (updatedSong.isTemporary && song.isPreloaded) {
         // Handle temporary edit - update local state only
         setSongs(prevSongs => {
@@ -181,8 +180,8 @@ function Song({ setCurrentSong, setIsPlaying, songs, setSongs, setCurrentPlaylis
           ) : (
             <>
               <h1>{song.title}</h1>
-              <p className="artist">{song.artist}</p>
               <div className="song-meta">
+                <p className="artist">{song.artist}</p>
                 <span className="duration">
                   <i className="bi bi-clock"></i> {song.duration}
                 </span>

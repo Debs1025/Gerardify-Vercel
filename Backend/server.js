@@ -483,7 +483,7 @@ app.get('/api/preloaded-songs', (req, res) => {
       _id: 'preload_1',
       title: 'The Days',
       artist: 'Chrystal, NOTION',
-      duration: '3:45',
+      duration: '3:53',
       filePath: `${backendUrl}/songs/days.mp3`, 
       publicId: 'preload_days',
       isPreloaded: true
@@ -493,7 +493,7 @@ app.get('/api/preloaded-songs', (req, res) => {
       _id: 'preload_3',
       title: 'Escapism',
       artist: 'Raye, 070 Shake',
-      duration: '3:28',
+      duration: '4:32',
       filePath: `${backendUrl}/songs/escapism.mp3`, 
       publicId: 'preload_escapism',
       isPreloaded: true
@@ -503,7 +503,7 @@ app.get('/api/preloaded-songs', (req, res) => {
       _id: 'preload_4',
       title: 'Feel',
       artist: 'd4vd',
-      duration: '3:55',
+      duration: '2:36',
       filePath: `${backendUrl}/songs/feel.mp3`, 
       publicId: 'preload_feel',
       isPreloaded: true
@@ -513,7 +513,7 @@ app.get('/api/preloaded-songs', (req, res) => {
       _id: 'preload_5',
       title: 'Lady Killers II',
       artist: 'G-eazy',
-      duration: '4:03',
+      duration: '4:57',
       filePath: `${backendUrl}/songs/lady.mp3`, 
       publicId: 'preload_lady',
       isPreloaded: true
@@ -523,7 +523,7 @@ app.get('/api/preloaded-songs', (req, res) => {
       _id: 'preload_6',
       title: 'Multo',
       artist: 'Cup of Joe',
-      duration: '3:37',
+      duration: '4:00',
       filePath: `${backendUrl}/songs/multo.mp3`, 
       publicId: 'preload_multo',
       isPreloaded: true
@@ -533,7 +533,7 @@ app.get('/api/preloaded-songs', (req, res) => {
       _id: 'preload_7',
       title: 'Night Like This',
       artist: 'The Kid Laroi',
-      duration: '4:21',
+      duration: '1:30',
       filePath: `${backendUrl}/songs/night.mp3`, 
       publicId: 'preload_night',
       isPreloaded: true
@@ -543,7 +543,7 @@ app.get('/api/preloaded-songs', (req, res) => {
       _id: 'preload_8',
       title: 'Sailor Song',
       artist: 'Gigi Perez',
-      duration: '3:14',
+      duration: '3:29',
       filePath: `${backendUrl}/songs/sailor.mp3`, 
       publicId: 'preload_sailor',
       isPreloaded: true
@@ -553,7 +553,7 @@ app.get('/api/preloaded-songs', (req, res) => {
       _id: 'preload_9',
       title: 'Sino',
       artist: 'Unique Salonga',
-      duration: '3:50',
+      duration: '4:43',
       filePath: `${backendUrl}/songs/sino.mp3`, 
       publicId: 'preload_sino',
       isPreloaded: true
@@ -784,14 +784,14 @@ app.post('/api/playlists/:id/songs', authenticateToken, async (req, res) => {
         : 'http://localhost:5000';
         
       const preloadedSongs = {
-        'preload_1': { title: 'Days', artist: 'Sample Artist', duration: '3:45', filePath: `${backendUrl}/songs/days.mp3` },
-        'preload_3': { title: 'Escapism', artist: 'Sample Artist', duration: '3:28', filePath: `${backendUrl}/songs/escapism.mp3` },
-        'preload_4': { title: 'Feel', artist: 'Sample Artist', duration: '3:55', filePath: `${backendUrl}/songs/feel.mp3` },
-        'preload_5': { title: 'Lady', artist: 'Sample Artist', duration: '4:03', filePath: `${backendUrl}/songs/lady.mp3` },
-        'preload_6': { title: 'Multo', artist: 'Sample Artist', duration: '3:37', filePath: `${backendUrl}/songs/multo.mp3` },
-        'preload_7': { title: 'Night', artist: 'Sample Artist', duration: '4:21', filePath: `${backendUrl}/songs/night.mp3` },
-        'preload_8': { title: 'Sailor', artist: 'Sample Artist', duration: '3:14', filePath: `${backendUrl}/songs/sailor.mp3` },
-        'preload_9': { title: 'Sino', artist: 'Sample Artist', duration: '3:50', filePath: `${backendUrl}/songs/sino.mp3` }
+        'preload_1': { title: 'The Days', artist: 'Chrystal, NOTION', duration: '3:53', filePath: `${backendUrl}/songs/days.mp3` },
+        'preload_3': { title: 'Escapism', artist: 'Raye, 070 Shake', duration: '4:32', filePath: `${backendUrl}/songs/escapism.mp3` },
+        'preload_4': { title: 'Feel', artist: 'd4vd', duration: '2:36', filePath: `${backendUrl}/songs/feel.mp3` },
+        'preload_5': { title: 'Lady Killers II', artist: 'G-eazy', duration: '4:57', filePath: `${backendUrl}/songs/lady.mp3` },
+        'preload_6': { title: 'Multo', artist: 'Cup of Joe', duration: '4:00', filePath: `${backendUrl}/songs/multo.mp3` },
+        'preload_7': { title: 'Night Like This', artist: 'The Kid Laroi', duration: '1:30', filePath: `${backendUrl}/songs/night.mp3` },
+        'preload_8': { title: 'Sailor Song', artist: 'Gigi Perez', duration: '3:29', filePath: `${backendUrl}/songs/sailor.mp3` },
+        'preload_9': { title: 'Sino', artist: 'Unique Salonga', duration: '4:43', filePath: `${backendUrl}/songs/sino.mp3` }
       };
 
       songToAdd = preloadedSongs[songId];
@@ -799,7 +799,7 @@ app.post('/api/playlists/:id/songs', authenticateToken, async (req, res) => {
         return res.status(404).json({ message: 'Preloaded song not found' });
       }
       
-      songToAdd._id = songId; // Use the preload ID
+      songToAdd._id = songId;
     } else {
       // Handle regular user songs
       const song = await Song.findOne({ 

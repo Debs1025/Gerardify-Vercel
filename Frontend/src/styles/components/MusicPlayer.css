@@ -35,7 +35,7 @@
 }
 
 .progress-wrapper {
-  width: 100%;
+  width: 70%;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -45,7 +45,7 @@
 .progress-bar {
   width: 100%;
   height: 4px;
-  background: #4d4d4d;
+  background: linear-gradient(to right, #e91e63 0%, #e91e63 var(--progress, 0%), #4d4d4d var(--progress, 0%), #4d4d4d 100%);
   border-radius: 2px;
   cursor: pointer;
   -webkit-appearance: none;
@@ -151,7 +151,7 @@
 .volume-slider {
   width: 100px;
   height: 4px;
-  background: #4d4d4d;
+  background: linear-gradient(to right, #e91e63 0%, #e91e63 var(--volume, 50%), #4d4d4d var(--volume, 50%), #4d4d4d 100%);
   border-radius: 2px;
   cursor: pointer;
   -webkit-appearance: none;

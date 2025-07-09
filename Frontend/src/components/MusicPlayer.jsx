@@ -8,7 +8,7 @@ function MusicPlayer({ currentSong, isPlaying, setIsPlaying, playlist, setCurren
   const [volume, setVolume] = useState(1);
   const [prevVolume, setPrevVolume] = useState(1);
   const [isMuted, setIsMuted] = useState(false);
-  const [isShuffleOn, setIsShuffleOn] = useState(false); // ✅ Add shuffle state
+  const [isShuffleOn, setIsShuffleOn] = useState(false);
 
   // Manage Progress Bar and Time
   useEffect(() => {
@@ -31,7 +31,6 @@ function MusicPlayer({ currentSong, isPlaying, setIsPlaying, playlist, setCurren
     };
   }, []);
 
-  // ✅ Updated skip forward function with shuffle logic
   const handleSkipForward = () => {
     console.log('Skip forward clicked');
     console.log('Current playlist:', playlist);
@@ -46,23 +45,19 @@ function MusicPlayer({ currentSong, isPlaying, setIsPlaying, playlist, setCurren
     let nextSong;
     
     if (isShuffleOn) {
-      // ✅ Shuffle mode: select random song
       const availableSongs = playlist.filter(song => 
         song.id !== currentSong.id && song._id !== currentSong.id
       );
       
       if (availableSongs.length === 0) {
-        // If only one song in playlist, just replay it
         nextSong = playlist[0];
       } else {
-        // Pick random song from available songs
         const randomIndex = Math.floor(Math.random() * availableSongs.length);
         nextSong = availableSongs[randomIndex];
       }
       
       console.log('Shuffle: Selected random song:', nextSong);
     } else {
-      // ✅ Normal mode: sequential order
       const currentIndex = playlist.findIndex(song => 
         song.id === currentSong.id || 
         song._id === currentSong.id || 
@@ -89,11 +84,9 @@ function MusicPlayer({ currentSong, isPlaying, setIsPlaying, playlist, setCurren
     }
   };
   
-  // ✅ Updated skip backward function (shuffle doesn't affect previous)
   const handleSkipBackward = () => {
     if (!playlist?.length || !currentSong) return;
     
-    // Previous always goes to actual previous song (no shuffle)
     const currentIndex = playlist.findIndex(song => 
       song.id === currentSong.id || 
       song._id === currentSong.id || 
@@ -114,13 +107,11 @@ function MusicPlayer({ currentSong, isPlaying, setIsPlaying, playlist, setCurren
     }
   };
 
-  // ✅ Toggle shuffle function
   const toggleShuffle = () => {
     setIsShuffleOn(!isShuffleOn);
     console.log('Shuffle toggled:', !isShuffleOn);
   };
 
-  // Time Format
   const formatTime = (time) => {
     const minutes = Math.floor(time / 60);
     const seconds = Math.floor(time % 60);
@@ -133,7 +124,6 @@ function MusicPlayer({ currentSong, isPlaying, setIsPlaying, playlist, setCurren
     audioRef.current.currentTime = newTime;
   };
 
-  // Play Audio and Display Song
   useEffect(() => {
     if (currentSong) {
       console.log('Loading song:', currentSong); 
@@ -224,7 +214,6 @@ function MusicPlayer({ currentSong, isPlaying, setIsPlaying, playlist, setCurren
     setIsPlaying(!isPlaying);
   };
 
-  // Volume
   const handleVolumeChange = (e) => {
     const newVolume = parseFloat(e.target.value);
     setVolume(newVolume);
@@ -266,16 +255,18 @@ function MusicPlayer({ currentSong, isPlaying, setIsPlaying, playlist, setCurren
       {/* Middle section */}
       <div className="middle-section">
         <div className="player-controls">
-          <button className="control-button" onClick={handleSkipBackward}>
-            <i className="bi bi-skip-start-fill"></i>
-          </button>
-          
+          {/* Shuffle button on far left */}
           <button 
             className={`control-button ${isShuffleOn ? 'active' : ''}`} 
             onClick={toggleShuffle}
             title={isShuffleOn ? 'Shuffle On' : 'Shuffle Off'}
           >
             <i className="bi bi-shuffle"></i>
+          </button>
+          
+          {/* Previous, Play, Next grouped together */}
+          <button className="control-button" onClick={handleSkipBackward}>
+            <i className="bi bi-skip-start-fill"></i>
           </button>
           
           <button className="control-button play" onClick={togglePlay}>
